@@ -1,6 +1,14 @@
 # TickTick MCP v2
 
-A Model Context Protocol (MCP) server for TickTick that enables interacting with your TickTick task management system directly through Claude and other MCP clients.
+A Model Context Protocol (MCP) server for TickTick that enables interacting with your TickTick task management system directly through Claude and other MCP clients using v2 interfaces.
+
+## Project Purpose
+
+This project addresses two key challenges in the current TickTick MCP landscape:
+
+1. **Complex Authentication**: The v1 interface requires overly complex authentication methods, which are not as straightforward as direct username/password authentication.
+
+2. **Limited API Functionality**: The official v1 API interfaces provide limited functionality and make it cumbersome to implement more complex features. For example, other TickTick MCP implementations cannot even retrieve tasks from the Inbox.
 
 ## Features
 
@@ -43,50 +51,25 @@ uv run ticktick-mcp run
 1. Edit your Claude Desktop configuration file:
    **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
    **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+   **Linux:** `~/.config/Claude/claude_desktop_config.json`
 
 2. Add the MCP server configuration:
 
-   **Option 1: Auto-authentication (Recommended)**
+   **Option A: Auto-authentication (Recommended)**
    ```json
-   {
-     "mcpServers": {
-       "ticktick-mcp-v2": {
-         "command": "uv",
-         "args": [
-           "run",
-           "--directory", 
-           "/absolute/path/to/your/ticktick-mcp-v2",
-           "ticktick-mcp",
-           "run"
-         ],
-         "env": {
-           "TICKTICK_USERNAME": "your_username_here",
-           "TICKTICK_PASSWORD": "your_password_here"
-         }
-       }
-     }
-   }
+    {
+      "mcpServers": {
+        "ticktick-mcp-v2": {
+          "command": "uvx",
+          "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"],
+          "env": {
+            "TICKTICK_USERNAME": "",
+            "TICKTICK_PASSWORD": ""
+          }
+        }
+      }
+    }
    ```
-
-   **Option 2: Manual authentication**
-   ```json
-   {
-     "mcpServers": {
-       "ticktick-mcp-v2": {
-         "command": "uv",
-         "args": [
-           "run",
-           "--directory", 
-           "/absolute/path/to/your/ticktick-mcp-v2",
-           "ticktick-mcp",
-           "run"
-         ]
-       }
-     }
-   }
-   ```
-
-3. Restart Claude Desktop
 
 ## Available MCP Tools
 
@@ -112,12 +95,14 @@ uv run ticktick-mcp run
 | `get_tasks_due_today` | Get tasks due today | None |
 | `get_overdue_tasks` | Get overdue tasks | None |
 
+
 ## Example Prompts
 
 - "Show me all my TickTick projects"
 - "Create a task called 'Finish documentation' with high priority"
 - "What tasks do I have due today?"
 - "Mark the task 'Buy groceries' as complete"
+- "Update task 'Meeting notes' with new due date tomorrow"
 
 ## CLI Commands
 
@@ -126,19 +111,12 @@ uv run ticktick-mcp run
 - `test` - Test configuration
 - `logout` - Clear saved credentials
 
-## Authentication
-
-This server supports multiple authentication methods:
-
-1. **CLI Authentication** (Primary): `uv run ticktick-mcp auth`
-2. **Environment Variables**: Set `TICKTICK_USERNAME` and `TICKTICK_PASSWORD`
-3. **MCP Config**: Add credentials in Claude Desktop config
-4. **Local Storage**: Credentials saved to `~/.ticktick-mcp/credentials.json`
 
 ### Running Tests
 ```bash
 python -m pytest tests/
 ```
+
 ## Acknowledgments
 
 This project would not be possible without the excellent work of the following open source projects:
@@ -149,13 +127,11 @@ This project would not be possible without the excellent work of the following o
 
 The core TickTick Python SDK that powers this MCP server. This unofficial API library provides comprehensive access to TickTick's functionality, enabling seamless integration with the TickTick task management platform.
 
-
 ### 🤝 Contributing
 
 If you find this project useful, please consider:
-- ⭐ Starring the maintained [fork repository](https://github.com/yidianyiko/ticktick-py)
 - 🐛 Reporting issues or suggesting improvements
-- 📖 Contributing to documentation
+- 📖 Contributing 
 
 ## License
 

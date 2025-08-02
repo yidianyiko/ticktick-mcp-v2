@@ -168,3 +168,7 @@ cython_debug/
 .env.local
 .env.production
 *.log 
+# PyPI发布相关
+.pypirc
+*.pypirc
+
