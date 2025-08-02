@@ -3,8 +3,9 @@
 # MCP Server Framework
 mcp>=1.0.0
 
-# TickTick Python SDK
-ticktick-py>=0.1.0
+# TickTick Python SDK (via Git submodule)
+# Note: This project uses a Git submodule for ticktick-py instead of PyPI version
+# The submodule is located at src/submodule/ticktick-py
 
 # Data processing
 pandas>=2.2.0

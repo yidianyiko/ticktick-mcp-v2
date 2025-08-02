@@ -27,7 +27,6 @@ classifiers = [
 
 dependencies = [
     "mcp>=1.0.0",
-    "ticktick-py>=0.1.0",
     "pandas>=2.2.0",
     "numpy>=1.24.0",
     "pytz>=2023.3",

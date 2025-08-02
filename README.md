@@ -17,6 +17,8 @@ A Model Context Protocol (MCP) server for TickTick that enables interacting with
 ```bash
 git clone <repository-url>
 cd ticktick-mcp-v2
+# Initialize and update Git submodules
+git submodule update --init --recursive
 uv pip install -r requirements.txt
 ```
 
@@ -137,6 +139,23 @@ This server supports multiple authentication methods:
 ```bash
 python -m pytest tests/
 ```
+## Acknowledgments
+
+This project would not be possible without the excellent work of the following open source projects:
+
+### 🎯 [ticktick-py](https://github.com/lazeroffmichael/ticktick-py)
+**Original Author**: [Michael Lazeroff](https://github.com/lazeroffmichael)  
+**Fork Maintainer**: [yidianyiko](https://github.com/yidianyiko)
+
+The core TickTick Python SDK that powers this MCP server. This unofficial API library provides comprehensive access to TickTick's functionality, enabling seamless integration with the TickTick task management platform.
+
+
+### 🤝 Contributing
+
+If you find this project useful, please consider:
+- ⭐ Starring the maintained [fork repository](https://github.com/yidianyiko/ticktick-py)
+- 🐛 Reporting issues or suggesting improvements
+- 📖 Contributing to documentation
 
 ## License
 
