@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "ticktick-mcp-v2": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory", 
+        "/home/ydyk/workspace/AIAI/ticktick-mcp-v2",
+        "ticktick-mcp",
+        "run"
+      ]
+    }
+  }
+}

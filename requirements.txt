@@ -1,0 +1,37 @@
+# TickTick MCP Project - Core Dependencies
+
+# MCP Server Framework
+mcp>=1.0.0
+
+# TickTick Python SDK
+ticktick-py>=0.1.0
+
+# Data processing
+pandas>=2.2.0
+numpy>=1.24.0
+
+# Time zone handling
+pytz>=2023.3
+python-dateutil>=2.8.2
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# HTTP client for API calls
+httpx>=0.24.0
+
+# JSON handling
+pydantic>=2.0.0
+
+# CLI framework
+click>=8.0.0
+
+# Async support
+nest-asyncio>=1.5.0
+
+# Development & Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Code quality
+ruff>=0.1.0 

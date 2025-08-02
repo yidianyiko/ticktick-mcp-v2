@@ -1,0 +1,3 @@
+[submodule "src/submodule/ticktick-py"]
+	path = src/submodule/ticktick-py
+	url = https://github.com/yidianyiko/ticktick-py.git
