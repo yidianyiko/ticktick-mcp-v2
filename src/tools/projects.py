@@ -7,6 +7,7 @@ import logging
 from typing import Any, Dict, List
 
 from adapters.client import get_client
+from utils.timezone_utils import convert_tasks_times_to_local
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,9 @@ def get_project_tasks(project_id: str, include_completed: bool = False) -> List[
         # Filter based on completion status
         if not include_completed:
             project_tasks = [task for task in project_tasks if task.get('status') != 2]
+        
+        # Convert UTC times to local times
+        project_tasks = convert_tasks_times_to_local(project_tasks)
         
         logger.info(f"Retrieved {len(project_tasks)} tasks for project {project_id}")
         return project_tasks

@@ -7,6 +7,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from adapters.client import get_client
+from utils.timezone_utils import convert_tasks_times_to_local, convert_task_times_to_local
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,9 @@ def get_tasks(include_completed: bool = False) -> List[Dict[str, Any]]:
     try:
         adapter = get_client()
         tasks = adapter.get_tasks(include_completed)
+        
+        # Convert UTC times to local times
+        tasks = convert_tasks_times_to_local(tasks)
         
         logger.info(f"Retrieved {len(tasks)} tasks")
         
@@ -54,6 +58,9 @@ def create_task(
         
         task = adapter.create_task(**task_data)
         
+        # Convert UTC times to local times
+        task = convert_task_times_to_local(task)
+        
         logger.info(f"Created task: {title}")
         return task
     except Exception as e:
@@ -87,6 +94,9 @@ def update_task(
             update_data["priority"] = priority
         
         task = adapter.update_task(task_id, project_id, **update_data)
+        
+        # Convert UTC times to local times
+        task = convert_task_times_to_local(task)
         
         logger.info(f"Updated task: {task_id}")
         return task
@@ -126,6 +136,9 @@ def search_tasks(query: str) -> List[Dict[str, Any]]:
         adapter = get_client()
         tasks = adapter.search_tasks(query)
         
+        # Convert UTC times to local times
+        tasks = convert_tasks_times_to_local(tasks)
+        
         logger.info(f"Found {len(tasks)} tasks matching query: {query}")
         return tasks
     except Exception as e:
@@ -137,6 +150,9 @@ def get_tasks_by_priority(priority: int) -> List[Dict[str, Any]]:
     try:
         adapter = get_client()
         tasks = adapter.get_tasks_by_priority(priority)
+        
+        # Convert UTC times to local times
+        tasks = convert_tasks_times_to_local(tasks)
         
         logger.info(f"Found {len(tasks)} tasks with priority {priority}")
         return tasks
@@ -150,6 +166,9 @@ def get_tasks_due_today() -> List[Dict[str, Any]]:
         adapter = get_client()
         tasks = adapter.get_tasks_due_today()
         
+        # Convert UTC times to local times
+        tasks = convert_tasks_times_to_local(tasks)
+        
         logger.info(f"Found {len(tasks)} tasks due today")
         return tasks
     except Exception as e:
@@ -161,6 +180,9 @@ def get_overdue_tasks() -> List[Dict[str, Any]]:
     try:
         adapter = get_client()
         tasks = adapter.get_overdue_tasks()
+        
+        # Convert UTC times to local times
+        tasks = convert_tasks_times_to_local(tasks)
         
         logger.info(f"Found {len(tasks)} overdue tasks")
         return tasks

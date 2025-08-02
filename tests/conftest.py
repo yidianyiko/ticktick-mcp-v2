@@ -16,8 +16,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # Import modules needed for tests
 from src.auth import TickTickAuth
 from src.tools.auth import AuthTools
-from src.tools.projects import ProjectTools
-from src.tools.tasks import TaskTools
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -36,15 +34,7 @@ def auth_tools():
     """Authentication tools fixture"""
     return AuthTools()
 
-@pytest.fixture
-def project_tools():
-    """Project tools fixture"""
-    return ProjectTools()
 
-@pytest.fixture
-def task_tools():
-    """Task tools fixture"""
-    return TaskTools()
 
 @pytest.fixture
 def test_credentials():
