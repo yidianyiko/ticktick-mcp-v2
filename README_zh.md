@@ -21,55 +21,52 @@
 
 ## 快速开始
 
-### 1. 安装依赖
-```bash
-git clone <repository-url>
-cd ticktick-mcp-v2
-# 初始化和更新Git子模块
-git submodule update --init --recursive
-uv pip install -r requirements.txt
-```
 
-### 2. 身份验证
-```bash
-uv run ticktick-mcp auth
-```
-按提示输入您的 TickTick 用户名和密码。凭证将保存在本地。
+ `mcp.json` 文件：
 
-### 3. 测试配置
-```bash
-uv run ticktick-mcp test
-```
-
-### 4. 运行服务器
-```bash
-uv run ticktick-mcp run
-```
-
-## 与Claude Desktop集成
-
-1. 编辑您的Claude Desktop配置文件：
-   **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-   **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-   **Linux:** `~/.config/Claude/claude_desktop_config.json`
-
-2. 添加MCP服务器配置：
-
-   **选项A：自动身份验证（推荐）**
-   ```json
-    {
-      "mcpServers": {
-        "ticktick-mcp-v2": {
-          "command": "uvx",
-          "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"],
-          "env": {
-            "TICKTICK_USERNAME": "",
-            "TICKTICK_PASSWORD": ""
-          }
-        }
+```json
+{
+  "mcpServers": {
+    "ticktick-mcp-v2": {
+      "command": "uvx",
+      "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"],
+      "env": {
+        "TICKTICK_USERNAME": "your_username",
+        "TICKTICK_PASSWORD": "your_password"
       }
     }
+  }
+}
+```
+
+### 4. 开始使用
+
+现在您可以直接与您的TickTick任务进行交互！试试询问：
+- "显示我所有的 TickTick 项目"
+- "创建一个名为'完成文档'的高优先级任务"
+- "我今天有哪些到期的任务？"
+
+## 开发方案 
+
+1. **安装和身份验证：**
+   ```bash
+   uvx --from ticktick-mcp-v2 ticktick-mcp auth
    ```
+
+2. **测试连接：**
+   ```bash
+   uvx --from ticktick-mcp-v2 ticktick-mcp test
+   ```
+
+3. **运行服务器：**
+   ```bash
+   uvx --from ticktick-mcp-v2 ticktick-mcp run
+   ```
+
+## 使用示例
+
+### 使用其他MCP客户端
+任何MCP兼容的客户端都可以使用上述配置进行连接。
 
 ## 可用的MCP工具
 
@@ -102,18 +99,6 @@ uv run ticktick-mcp run
 - "我今天有哪些到期的任务？"
 - "将任务'买杂货'标记为完成"
 - "更新任务'会议记录'的到期日期为明天"
-
-## CLI命令
-
-- `auth` - 与TickTick进行身份验证
-- `run` - 运行MCP服务器
-- `test` - 测试配置
-- `logout` - 清除保存的凭证
-
-### 运行测试
-```bash
-python -m pytest tests/
-```
 
 ## 致谢
 

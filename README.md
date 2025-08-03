@@ -21,55 +21,51 @@ This project addresses two key challenges in the current TickTick MCP landscape:
 
 ## Quick Start
 
-### 1. Install Dependencies
-```bash
-git clone <repository-url>
-cd ticktick-mcp-v2
-# Initialize and update Git submodules
-git submodule update --init --recursive
-uv pip install -r requirements.txt
-```
+Create a `mcp.json` file:
 
-### 2. Authenticate
-```bash
-uv run ticktick-mcp auth
-```
-Enter your TickTick username and password when prompted. Credentials will be saved locally.
-
-### 3. Test Configuration
-```bash
-uv run ticktick-mcp test
-```
-
-### 4. Run Server
-```bash
-uv run ticktick-mcp run
-```
-
-## Integration with Claude Desktop
-
-1. Edit your Claude Desktop configuration file:
-   **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-   **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-   **Linux:** `~/.config/Claude/claude_desktop_config.json`
-
-2. Add the MCP server configuration:
-
-   **Option A: Auto-authentication (Recommended)**
-   ```json
-    {
-      "mcpServers": {
-        "ticktick-mcp-v2": {
-          "command": "uvx",
-          "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"],
-          "env": {
-            "TICKTICK_USERNAME": "",
-            "TICKTICK_PASSWORD": ""
-          }
-        }
+```json
+{
+  "mcpServers": {
+    "ticktick-mcp-v2": {
+      "command": "uvx",
+      "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"],
+      "env": {
+        "TICKTICK_USERNAME": "your_username",
+        "TICKTICK_PASSWORD": "your_password"
       }
     }
+  }
+}
+```
+
+### Start Using
+
+You can now interact with your TickTick tasks directly! Try asking:
+- "Show me all my TickTick projects"
+- "Create a task called 'Finish documentation' with high priority"
+- "What tasks do I have due today?"
+
+## Development Setup
+
+1. **Install and authenticate:**
+   ```bash
+   uvx --from ticktick-mcp-v2 ticktick-mcp auth
    ```
+
+2. **Test the connection:**
+   ```bash
+   uvx --from ticktick-mcp-v2 ticktick-mcp test
+   ```
+
+3. **Run the server:**
+   ```bash
+   uvx --from ticktick-mcp-v2 ticktick-mcp run
+   ```
+
+## Usage Examples
+
+### Using with other MCP clients
+Any MCP-compatible client can connect using the configuration above.
 
 ## Available MCP Tools
 
@@ -95,7 +91,6 @@ uv run ticktick-mcp run
 | `get_tasks_due_today` | Get tasks due today | None |
 | `get_overdue_tasks` | Get overdue tasks | None |
 
-
 ## Example Prompts
 
 - "Show me all my TickTick projects"
@@ -103,19 +98,6 @@ uv run ticktick-mcp run
 - "What tasks do I have due today?"
 - "Mark the task 'Buy groceries' as complete"
 - "Update task 'Meeting notes' with new due date tomorrow"
-
-## CLI Commands
-
-- `auth` - Authenticate with TickTick
-- `run` - Run the MCP server
-- `test` - Test configuration
-- `logout` - Clear saved credentials
-
-
-### Running Tests
-```bash
-python -m pytest tests/
-```
 
 ## Acknowledgments
 
