@@ -18,6 +18,7 @@ By explicitly inserting the package directory into ``sys.path`` we guarantee
 that these absolute imports resolve correctly regardless of the invocation
 method (module execution, unit tests, interactive sessions, etc.).
 """
+
 from __future__ import annotations
 
 import sys as _sys
