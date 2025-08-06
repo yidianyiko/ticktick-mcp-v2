@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # Import modules needed for tests
 from src.auth import TickTickAuth
 from src.tools.auth import AuthTools
+from src.tools import projects, tasks
 
 
 @pytest.fixture(scope="session")
@@ -61,6 +62,34 @@ def test_task_data():
     }
 
 
+@pytest.fixture
+def project_tools():
+    """Project tools fixture - returns dictionary of project functions"""
+    return {
+        "get_projects": projects.get_projects,
+        "get_project": projects.get_project,
+        "create_project": projects.create_project,
+        "delete_project": projects.delete_project,
+        "get_project_tasks": projects.get_project_tasks,
+    }
+
+
+@pytest.fixture
+def task_tools():
+    """Task tools fixture - returns dictionary of task functions"""
+    return {
+        "get_tasks": tasks.get_tasks,
+        "create_task": tasks.create_task,
+        "update_task": tasks.update_task,
+        "delete_task": tasks.delete_task,
+        "complete_task": tasks.complete_task,
+        "search_tasks": tasks.search_tasks,
+        "get_tasks_by_priority": tasks.get_tasks_by_priority,
+        "get_tasks_due_today": tasks.get_tasks_due_today,
+        "get_overdue_tasks": tasks.get_overdue_tasks,
+    }
+
+
 # Test markers
 def pytest_configure(config):
     """Configure test markers"""
@@ -70,3 +99,4 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: Slow test marker")
     config.addinivalue_line("markers", "auth: Authentication-related test marker")
     config.addinivalue_line("markers", "mcp: MCP-related test marker")
+    config.addinivalue_line("markers", "performance: Performance test marker")

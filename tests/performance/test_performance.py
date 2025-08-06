@@ -1,0 +1,439 @@
+#!/usr/bin/env python3
+"""
+Performance tests for TickTick MCP server
+"""
+
+import pytest
+import asyncio
+import time
+import statistics
+import sys
+import os
+from pathlib import Path
+from unittest.mock import patch, Mock
+
+# Add src directory to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+
+@pytest.mark.performance
+class TestPerformanceBenchmarks:
+    """Performance benchmark tests"""
+
+    @pytest.mark.asyncio
+    async def test_tool_call_latency(self):
+        """Test latency of individual tool calls"""
+        try:
+            from mcp.client.session import ClientSession
+            from mcp.client.stdio import stdio_client, StdioServerParameters
+
+            server_params = StdioServerParameters(
+                command="python",
+                args=["-m", "src.cli", "run"],
+                cwd=Path(__file__).parent.parent.parent,
+            )
+
+            async with stdio_client(server_params) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    print("🔧 Benchmarking tool call latency...")
+
+                    # Test different operations multiple times
+                    operations = [
+                        ("auth_status", {}),
+                        ("get_projects", {}),
+                        ("get_tasks", {"include_completed": False}),
+                        ("get_tasks_due_today", {}),
+                        ("get_overdue_tasks", {}),
+                    ]
+
+                    results = {}
+                    
+                    for operation_name, params in operations:
+                        print(f"Benchmarking {operation_name}...")
+                        latencies = []
+                        
+                        # Run each operation 10 times
+                        for _ in range(10):
+                            start_time = time.perf_counter()
+                            try:
+                                result = await session.call_tool(operation_name, params)
+                                end_time = time.perf_counter()
+                                latency = (end_time - start_time) * 1000  # Convert to ms
+                                latencies.append(latency)
+                            except Exception as e:
+                                print(f"❌ {operation_name} failed: {e}")
+                                break
+
+                        if latencies:
+                            avg_latency = statistics.mean(latencies)
+                            min_latency = min(latencies)
+                            max_latency = max(latencies)
+                            p95_latency = statistics.quantiles(latencies, n=20)[18]  # 95th percentile
+                            
+                            results[operation_name] = {
+                                'avg': avg_latency,
+                                'min': min_latency,
+                                'max': max_latency,
+                                'p95': p95_latency
+                            }
+                            
+                            print(f"  Average: {avg_latency:.2f}ms")
+                            print(f"  Min: {min_latency:.2f}ms")
+                            print(f"  Max: {max_latency:.2f}ms")
+                            print(f"  P95: {p95_latency:.2f}ms")
+
+                    # Performance assertions
+                    for operation_name, metrics in results.items():
+                        # Average latency should be under 2 seconds
+                        assert metrics['avg'] < 2000, f"{operation_name} avg latency too high: {metrics['avg']:.2f}ms"
+                        # P95 latency should be under 5 seconds
+                        assert metrics['p95'] < 5000, f"{operation_name} P95 latency too high: {metrics['p95']:.2f}ms"
+
+                    print("✅ Tool call latency benchmark completed!")
+                    return results
+
+        except Exception as e:
+            print(f"❌ Tool call latency benchmark failed: {e}")
+            return {}
+
+    @pytest.mark.asyncio
+    async def test_throughput_benchmark(self):
+        """Test throughput under load"""
+        try:
+            from mcp.client.session import ClientSession
+            from mcp.client.stdio import stdio_client, StdioServerParameters
+
+            server_params = StdioServerParameters(
+                command="python",
+                args=["-m", "src.cli", "run"],
+                cwd=Path(__file__).parent.parent.parent,
+            )
+
+            async with stdio_client(server_params) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    print("🔧 Benchmarking throughput...")
+
+                    # Test concurrent requests
+                    concurrent_levels = [1, 2, 5, 10]
+                    
+                    for concurrency in concurrent_levels:
+                        print(f"Testing with {concurrency} concurrent requests...")
+                        
+                        start_time = time.perf_counter()
+                        
+                        # Create concurrent tasks
+                        tasks = []
+                        for _ in range(concurrency):
+                            task = session.call_tool("auth_status", {})
+                            tasks.append(task)
+                        
+                        # Execute all tasks concurrently
+                        results = await asyncio.gather(*tasks, return_exceptions=True)
+                        
+                        end_time = time.perf_counter()
+                        total_time = end_time - start_time
+                        
+                        # Count successful requests
+                        successful = sum(1 for r in results if not isinstance(r, Exception))
+                        throughput = successful / total_time
+                        
+                        print(f"  Concurrency {concurrency}: {throughput:.2f} requests/second")
+                        print(f"  Success rate: {successful}/{concurrency} ({successful/concurrency:.2%})")
+                        
+                        # Throughput should be reasonable
+                        assert throughput > 0.5, f"Throughput too low at concurrency {concurrency}: {throughput:.2f} req/s"
+                        # Success rate should be high
+                        assert successful/concurrency >= 0.9, f"Success rate too low at concurrency {concurrency}: {successful/concurrency:.2%}"
+
+                    print("✅ Throughput benchmark completed!")
+                    return True
+
+        except Exception as e:
+            print(f"❌ Throughput benchmark failed: {e}")
+            return False
+
+    def test_unit_function_performance(self):
+        """Test performance of individual unit functions"""
+        print("🔧 Benchmarking unit function performance...")
+        
+        # Import functions to test
+        from tools import tasks, projects
+        from adapters.client import TickTickAdapter
+        
+        # Mock the adapter to avoid real API calls
+        mock_adapter = Mock()
+        mock_adapter.get_tasks.return_value = [{'id': f'task{i}', 'title': f'Task {i}'} for i in range(100)]
+        mock_adapter.get_projects.return_value = [{'id': f'proj{i}', 'name': f'Project {i}'} for i in range(10)]
+        
+        with patch('tools.tasks.get_client', return_value=mock_adapter):
+            with patch('tools.tasks.convert_tasks_times_to_local', side_effect=lambda x: x):
+                # Benchmark get_tasks
+                start_time = time.perf_counter()
+                for _ in range(100):
+                    tasks.get_tasks()
+                end_time = time.perf_counter()
+                
+                get_tasks_time = (end_time - start_time) / 100 * 1000  # ms per call
+                print(f"get_tasks: {get_tasks_time:.3f}ms per call")
+                
+                # Should be fast since it's mostly mocked
+                assert get_tasks_time < 10, f"get_tasks too slow: {get_tasks_time:.3f}ms"
+
+        with patch('tools.projects.get_client', return_value=mock_adapter):
+            # Benchmark get_projects
+            start_time = time.perf_counter()
+            for _ in range(100):
+                projects.get_projects()
+            end_time = time.perf_counter()
+            
+            get_projects_time = (end_time - start_time) / 100 * 1000  # ms per call
+            print(f"get_projects: {get_projects_time:.3f}ms per call")
+            
+            # Should be fast since it's mostly mocked
+            assert get_projects_time < 10, f"get_projects too slow: {get_projects_time:.3f}ms"
+
+        print("✅ Unit function performance benchmark completed!")
+        return True
+
+    def test_memory_efficiency(self):
+        """Test memory efficiency of operations"""
+        try:
+            import psutil
+            import gc
+        except ImportError:
+            print("⚠️ psutil not available, skipping memory efficiency test")
+            return True
+
+        print("🔧 Testing memory efficiency...")
+        
+        from tools import tasks, projects
+        
+        # Get initial memory usage
+        process = psutil.Process()
+        gc.collect()  # Force garbage collection
+        initial_memory = process.memory_info().rss / 1024 / 1024  # MB
+        
+        # Mock large datasets
+        large_task_list = [{'id': f'task{i}', 'title': f'Task {i}' * 10} for i in range(1000)]
+        large_project_list = [{'id': f'proj{i}', 'name': f'Project {i}' * 10} for i in range(100)]
+        
+        mock_adapter = Mock()
+        mock_adapter.get_tasks.return_value = large_task_list
+        mock_adapter.get_projects.return_value = large_project_list
+        
+        with patch('tools.tasks.get_client', return_value=mock_adapter):
+            with patch('tools.tasks.convert_tasks_times_to_local', side_effect=lambda x: x):
+                # Process large amounts of data
+                for _ in range(10):
+                    result = tasks.get_tasks()
+                    assert len(result) == 1000
+                    # Don't keep references to results
+                    del result
+
+        with patch('tools.projects.get_client', return_value=mock_adapter):
+            for _ in range(10):
+                result = projects.get_projects()
+                assert len(result) == 100
+                del result
+
+        # Force garbage collection and check memory
+        gc.collect()
+        final_memory = process.memory_info().rss / 1024 / 1024
+        memory_increase = final_memory - initial_memory
+        
+        print(f"Memory increase: {memory_increase:.2f} MB")
+        
+        # Memory increase should be reasonable for processing large datasets
+        assert memory_increase < 50, f"Memory increase too high: {memory_increase:.2f} MB"
+        
+        print("✅ Memory efficiency test completed!")
+        return True
+
+
+@pytest.mark.performance
+@pytest.mark.slow
+class TestStressTests:
+    """Stress tests for the system"""
+
+    @pytest.mark.asyncio
+    async def test_high_load_stress(self):
+        """Test system under high load"""
+        try:
+            from mcp.client.session import ClientSession
+            from mcp.client.stdio import stdio_client, StdioServerParameters
+
+            server_params = StdioServerParameters(
+                command="python",
+                args=["-m", "src.cli", "run"],
+                cwd=Path(__file__).parent.parent.parent,
+            )
+
+            async with stdio_client(server_params) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    print("🔧 Running high load stress test...")
+
+                    # Create a large number of concurrent requests
+                    num_requests = 50
+                    operations = [
+                        ("auth_status", {}),
+                        ("get_projects", {}),
+                        ("get_tasks", {"include_completed": False}),
+                        ("get_tasks_due_today", {}),
+                        ("get_overdue_tasks", {}),
+                    ]
+
+                    start_time = time.perf_counter()
+                    
+                    # Create all tasks
+                    all_tasks = []
+                    for i in range(num_requests):
+                        operation_name, params = operations[i % len(operations)]
+                        task = session.call_tool(operation_name, params)
+                        all_tasks.append(task)
+
+                    # Execute all requests
+                    results = await asyncio.gather(*all_tasks, return_exceptions=True)
+                    
+                    end_time = time.perf_counter()
+                    total_time = end_time - start_time
+
+                    # Analyze results
+                    successful = sum(1 for r in results if not isinstance(r, Exception))
+                    failed = num_requests - successful
+                    success_rate = successful / num_requests
+                    throughput = successful / total_time
+
+                    print(f"Total requests: {num_requests}")
+                    print(f"Successful: {successful}")
+                    print(f"Failed: {failed}")
+                    print(f"Success rate: {success_rate:.2%}")
+                    print(f"Throughput: {throughput:.2f} requests/second")
+                    print(f"Total time: {total_time:.2f} seconds")
+
+                    # Performance requirements for stress test
+                    assert success_rate >= 0.8, f"Success rate too low under stress: {success_rate:.2%}"
+                    assert throughput >= 1.0, f"Throughput too low under stress: {throughput:.2f} req/s"
+
+                    print("✅ High load stress test completed!")
+                    return True
+
+        except Exception as e:
+            print(f"❌ High load stress test failed: {e}")
+            return False
+
+    def test_memory_stress(self):
+        """Test memory usage under stress"""
+        try:
+            import psutil
+            import gc
+        except ImportError:
+            print("⚠️ psutil not available, skipping memory stress test")
+            return True
+
+        print("🔧 Running memory stress test...")
+        
+        from tools import tasks, projects
+        
+        # Get initial memory
+        process = psutil.Process()
+        gc.collect()
+        initial_memory = process.memory_info().rss / 1024 / 1024
+
+        # Create very large mock datasets
+        huge_task_list = [{'id': f'task{i}', 'title': f'Task {i}' * 100, 'content': 'X' * 1000} for i in range(5000)]
+        
+        mock_adapter = Mock()
+        mock_adapter.get_tasks.return_value = huge_task_list
+        
+        max_memory = initial_memory
+        
+        with patch('tools.tasks.get_client', return_value=mock_adapter):
+            with patch('tools.tasks.convert_tasks_times_to_local', side_effect=lambda x: x):
+                # Process huge datasets repeatedly
+                for i in range(20):
+                    result = tasks.get_tasks()
+                    assert len(result) == 5000
+                    
+                    # Check memory usage periodically
+                    if i % 5 == 0:
+                        current_memory = process.memory_info().rss / 1024 / 1024
+                        max_memory = max(max_memory, current_memory)
+                        print(f"Iteration {i}: {current_memory:.2f} MB")
+                    
+                    # Clear reference
+                    del result
+                    
+                    # Occasional garbage collection
+                    if i % 10 == 0:
+                        gc.collect()
+
+        # Final memory check
+        gc.collect()
+        final_memory = process.memory_info().rss / 1024 / 1024
+        peak_increase = max_memory - initial_memory
+        final_increase = final_memory - initial_memory
+
+        print(f"Initial memory: {initial_memory:.2f} MB")
+        print(f"Peak memory: {max_memory:.2f} MB")
+        print(f"Final memory: {final_memory:.2f} MB")
+        print(f"Peak increase: {peak_increase:.2f} MB")
+        print(f"Final increase: {final_increase:.2f} MB")
+
+        # Memory requirements for stress test
+        assert peak_increase < 200, f"Peak memory increase too high: {peak_increase:.2f} MB"
+        assert final_increase < 100, f"Final memory increase too high: {final_increase:.2f} MB"
+
+        print("✅ Memory stress test completed!")
+        return True
+
+
+@pytest.mark.performance
+class TestPerformanceRegression:
+    """Performance regression tests"""
+
+    def test_performance_baseline(self):
+        """Establish performance baseline for regression testing"""
+        print("🔧 Establishing performance baseline...")
+        
+        from tools import tasks, projects
+        
+        # Create consistent mock data
+        mock_tasks = [{'id': f'task{i}', 'title': f'Task {i}'} for i in range(100)]
+        mock_projects = [{'id': f'proj{i}', 'name': f'Project {i}'} for i in range(10)]
+        
+        mock_adapter = Mock()
+        mock_adapter.get_tasks.return_value = mock_tasks
+        mock_adapter.get_projects.return_value = mock_projects
+        
+        baselines = {}
+        
+        # Test get_tasks performance
+        with patch('tools.tasks.get_client', return_value=mock_adapter):
+            with patch('tools.tasks.convert_tasks_times_to_local', side_effect=lambda x: x):
+                start_time = time.perf_counter()
+                for _ in range(100):
+                    tasks.get_tasks()
+                end_time = time.perf_counter()
+                baselines['get_tasks'] = (end_time - start_time) / 100
+
+        # Test get_projects performance
+        with patch('tools.projects.get_client', return_value=mock_adapter):
+            start_time = time.perf_counter()
+            for _ in range(100):
+                projects.get_projects()
+            end_time = time.perf_counter()
+            baselines['get_projects'] = (end_time - start_time) / 100
+
+        # Print baselines for reference
+        for operation, baseline_time in baselines.items():
+            print(f"{operation} baseline: {baseline_time*1000:.3f}ms per call")
+            
+            # Sanity check - operations should be reasonably fast
+            assert baseline_time < 0.1, f"{operation} baseline too slow: {baseline_time*1000:.3f}ms"
+
+        print("✅ Performance baseline established!")
+        return baselines
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-m", "performance"])

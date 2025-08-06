@@ -37,19 +37,19 @@ class TestTickTickAuth:
             # Should return True, but may return False due to invalid token
             assert isinstance(result, bool)
 
-    @patch("auth.TickTickAuth._load_credentials")
+    @patch("src.auth.TickTickAuth._load_credentials")
     def test_load_credentials(self, mock_load, auth_instance):
         """Test credentials loading"""
         mock_load.return_value = {"username": "test", "password": "test"}
         result = auth_instance._load_credentials()
         assert result == {"username": "test", "password": "test"}
 
-    @patch("auth.TickTickAuth._save_credentials")
+    @patch("src.auth.TickTickAuth._save_credentials")
     def test_save_credentials(self, mock_save, auth_instance):
         """Test credentials saving"""
-        credentials = {"username": "test", "password": "test"}
-        auth_instance._save_credentials(credentials)
-        mock_save.assert_called_once_with(credentials)
+        username, password = "test", "test"
+        auth_instance._save_credentials(username, password)
+        mock_save.assert_called_once_with(username, password)
 
 
 @pytest.mark.unit

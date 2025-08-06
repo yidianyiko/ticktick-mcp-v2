@@ -4,21 +4,17 @@ Tools module unit tests
 """
 
 import pytest
-from src.tools.projects import ProjectTools
-from src.tools.tasks import TaskTools
 
 """Project tools tests"""
 
 
-def test_project_tools_initialization():
+def test_project_tools_initialization(project_tools):
     """Test project tools initialization"""
-    project_tools = ProjectTools()
     assert project_tools is not None
 
 
-def test_project_tools_availability():
+def test_project_tools_availability(project_tools):
     """Test project tools availability"""
-    project_tools = ProjectTools()
     expected_tools = [
         "get_projects",
         "get_project",
@@ -32,28 +28,28 @@ def test_project_tools_availability():
         assert callable(project_tools[tool_name]), f"Tool {tool_name} is not callable"
 
 
-def test_get_projects_function():
+def test_get_projects_function(project_tools):
     """Test get projects function"""
-    project_tools = ProjectTools()
-    assert hasattr(project_tools, "get_projects")
+    assert "get_projects" in project_tools
+    assert callable(project_tools["get_projects"])
 
 
-def test_get_project_function():
+def test_get_project_function(project_tools):
     """Test get single project function"""
-    project_tools = ProjectTools()
-    assert hasattr(project_tools, "get_project")
+    assert "get_project" in project_tools
+    assert callable(project_tools["get_project"])
 
 
-def test_create_project_function():
+def test_create_project_function(project_tools):
     """Test create project function"""
-    project_tools = ProjectTools()
-    assert hasattr(project_tools, "create_project")
+    assert "create_project" in project_tools
+    assert callable(project_tools["create_project"])
 
 
-def test_delete_project_function():
+def test_delete_project_function(project_tools):
     """Test delete project function"""
-    project_tools = ProjectTools()
-    assert hasattr(project_tools, "delete_project")
+    assert "delete_project" in project_tools
+    assert callable(project_tools["delete_project"])
 
 
 @pytest.mark.unit

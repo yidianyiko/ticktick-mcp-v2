@@ -314,7 +314,17 @@ async def create_task(
         return "Not authenticated. Please use auth_login tool to login first."
 
     try:
-        task = create_task_impl(title, project_id, content, start_date, due_date, priority)
+        # Convert priority to int if it's a string (MCP parameter conversion)
+        converted_priority = 0
+        if isinstance(priority, str):
+            try:
+                converted_priority = int(priority)
+            except ValueError:
+                return f"Error: priority must be a valid integer, got '{priority}'"
+        else:
+            converted_priority = priority
+        
+        task = create_task_impl(title, project_id, content, start_date, due_date, converted_priority)
         return format_result(task)
     except Exception as e:
         logger.error(f"Error in create_task: {e}")
@@ -336,7 +346,18 @@ async def update_task(
         return "Not authenticated. Please use auth_login tool to login first."
 
     try:
-        task = update_task_impl(task_id, project_id, title, content, start_date, due_date, priority)
+        # Convert priority to int if it's a string (MCP parameter conversion)
+        converted_priority = None
+        if priority is not None:
+            if isinstance(priority, str):
+                try:
+                    converted_priority = int(priority)
+                except ValueError:
+                    return f"Error: priority must be a valid integer, got '{priority}'"
+            else:
+                converted_priority = priority
+        
+        task = update_task_impl(task_id, project_id, title, content, start_date, due_date, converted_priority)
         return format_result(task)
     except Exception as e:
         logger.error(f"Error in update_task: {e}")
@@ -351,7 +372,11 @@ async def delete_task(project_id: str, task_id: str) -> str:
 
     try:
         result = delete_task_impl(project_id, task_id)
-        return format_result(result)
+        # Handle boolean result from delete operation
+        if isinstance(result, bool):
+            return f"Task deletion {'successful' if result else 'failed'}"
+        else:
+            return format_result(result)
     except Exception as e:
         logger.error(f"Error in delete_task: {e}")
         return f"Error deleting task: {str(e)}"
@@ -392,7 +417,17 @@ async def get_tasks_by_priority(priority: int) -> str:
         return "Not authenticated. Please use auth_login tool to login first."
 
     try:
-        tasks = get_tasks_by_priority_impl(priority)
+        # Convert priority to int if it's a string (MCP parameter conversion)
+        converted_priority = 0
+        if isinstance(priority, str):
+            try:
+                converted_priority = int(priority)
+            except ValueError:
+                return f"Error: priority must be a valid integer, got '{priority}'"
+        else:
+            converted_priority = priority
+        
+        tasks = get_tasks_by_priority_impl(converted_priority)
         return format_result(tasks)
     except Exception as e:
         logger.error(f"Error in get_tasks_by_priority: {e}")

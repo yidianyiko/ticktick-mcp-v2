@@ -158,11 +158,17 @@ class TickTickAdapter:
         try:
             client = self._ensure_client()
 
+            # If no project_id provided or it's empty, try to get it from the task
+            if not project_id:
+                task = client.get_by_id(task_id)
+                if task:
+                    project_id = task.get('projectId', '')
+
             # Use ticktick.py library to delete task
             result = client.task.delete(task_id)
 
-            logger.info(f"Deleted task: {task_id}")
-            return result
+            logger.info(f"Deleted task: {task_id} from project: {project_id}")
+            return True  # Return True if no exception occurred
 
         except Exception as e:
             logger.error(f"Failed to delete task {task_id}: {e}")
@@ -173,11 +179,16 @@ class TickTickAdapter:
         try:
             client = self._ensure_client()
 
-            # Use ticktick.py library to complete task
-            result = client.task.complete(task_id)
+            # First get the complete task object
+            task = client.get_by_id(task_id)
+            if not task:
+                raise Exception(f"Task {task_id} not found")
+
+            # Use ticktick.py library to complete task (needs full task dict)
+            result = client.task.complete(task)
 
             logger.info(f"Completed task: {task_id}")
-            return result
+            return True  # Return True if no exception occurred
 
         except Exception as e:
             logger.error(f"Failed to complete task {task_id}: {e}")
