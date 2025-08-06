@@ -144,3 +144,6 @@ cython_debug/
 .pypirc
 *.pypirc
 .cursor/
+
+# Submodules and external repos
+src/submodule/

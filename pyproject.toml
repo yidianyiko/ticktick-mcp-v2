@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ticktick-mcp-v2"
-version = "1.0.1"
+version = "1.0.2"
 description = "TickTick MCP Server - Enhanced Version with Chinese Support"
 authors = [
     {name = "TickTick MCP Team", email = "dev@example.com"}
