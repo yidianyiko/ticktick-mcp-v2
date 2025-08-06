@@ -230,60 +230,46 @@ def search_tasks(tasks: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]
     return results
 
 
-def get_tasks_due_today(tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def get_tasks_due_today(tasks: List[Dict[str, Any]], user_timezone: str = '') -> List[Dict[str, Any]]:
     """
-    Get tasks due today
+    Get tasks due today in user's timezone
 
     Args:
         tasks: Task list
+        user_timezone: User's timezone string (optional, for backward compatibility)
 
     Returns:
         List: Tasks due today
     """
-    today = datetime.now().date()
+    # Import here to avoid circular imports
+    from utils.timezone_utils import is_task_due_today
+    
     results = []
-
     for task in tasks:
-        # Only check 'dueDate' field (correct field name)
-        due_date = task.get("dueDate")
-        if due_date:
-            try:
-                task_date = parse_date_string(due_date)
-                if task_date and task_date.date() == today:
-                    results.append(task)
-            except Exception as e:
-                # Log parsing errors for debugging
-                continue
+        if is_task_due_today(task, user_timezone):
+            results.append(task)
 
     return results
 
 
-def get_overdue_tasks(tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def get_overdue_tasks(tasks: List[Dict[str, Any]], user_timezone: str = '') -> List[Dict[str, Any]]:
     """
-    Get overdue tasks
+    Get overdue tasks in user's timezone
 
     Args:
         tasks: Task list
+        user_timezone: User's timezone string (optional, for backward compatibility)
 
     Returns:
         List: Overdue task list
     """
-    today = datetime.now().date()
+    # Import here to avoid circular imports
+    from utils.timezone_utils import is_task_overdue
+    
     results = []
-
     for task in tasks:
-        # Only check 'dueDate' field (correct field name)
-        due_date = task.get("dueDate")
-        if due_date:
-            try:
-                task_date = parse_date_string(due_date)
-                if (
-                    task_date and task_date.date() < today and task.get("status") != 2
-                ):  # Not completed
-                    results.append(task)
-            except Exception as e:
-                # Log parsing errors for debugging
-                continue
+        if is_task_overdue(task, user_timezone):
+            results.append(task)
 
     return results
 

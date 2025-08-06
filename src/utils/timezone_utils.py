@@ -3,7 +3,7 @@ Timezone conversion utilities for TickTick MCP tools
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, date, timezone
 from typing import Any, Dict, Optional
 import pytz
 
@@ -103,3 +103,140 @@ def convert_tasks_times_to_local(tasks: list) -> list:
     except Exception as e:
         logger.error(f"Failed to convert tasks times: {e}")
         return tasks
+
+
+def get_user_today(user_timezone: str) -> date:
+    """
+    Get today's date in user's timezone
+    
+    Args:
+        user_timezone: User's timezone string like "Asia/Shanghai"
+        
+    Returns:
+        Today's date in user's timezone
+    """
+    try:
+        if user_timezone and user_timezone.strip():
+            tz = pytz.timezone(user_timezone)
+            return datetime.now(tz).date()
+        else:
+            # Fallback to UTC if no timezone info
+            return datetime.now(timezone.utc).date()
+    except Exception as e:
+        logger.error(f"Failed to get user today with timezone {user_timezone}: {e}")
+        # Fallback to UTC
+        return datetime.now(timezone.utc).date()
+
+
+def parse_task_date(date_str: str) -> Optional[datetime]:
+    """
+    Parse task date string to datetime object
+    
+    Args:
+        date_str: Date string from TickTick API
+        
+    Returns:
+        Parsed datetime object or None if parsing fails
+    """
+    if not date_str:
+        return None
+        
+    try:
+        # Handle different date formats from TickTick
+        if date_str.endswith("Z"):
+            date_str = date_str.replace("Z", "+00:00")
+        elif date_str.endswith("+0000"):
+            date_str = date_str.replace("+0000", "+00:00")
+            
+        return datetime.fromisoformat(date_str)
+    except Exception as e:
+        logger.debug(f"Failed to parse date {date_str}: {e}")
+        return None
+
+
+def is_task_due_today(task: Dict[str, Any], user_timezone: str) -> bool:
+    """
+    Check if task is due today in user's timezone
+    
+    Args:
+        task: Task dictionary
+        user_timezone: User's timezone string
+        
+    Returns:
+        True if task is due today in user's timezone
+    """
+    try:
+        due_date = task.get("dueDate")
+        if not due_date:
+            return False
+            
+        # Parse task due date
+        task_datetime = parse_task_date(due_date)
+        if not task_datetime:
+            return False
+            
+        # Get user's today
+        user_today = get_user_today(user_timezone)
+        
+        # Convert task date to user timezone for comparison
+        if user_timezone and user_timezone.strip():
+            try:
+                tz = pytz.timezone(user_timezone)
+                task_local_date = task_datetime.astimezone(tz).date()
+            except Exception:
+                # If timezone conversion fails, use UTC
+                task_local_date = task_datetime.date()
+        else:
+            task_local_date = task_datetime.date()
+            
+        return task_local_date == user_today
+        
+    except Exception as e:
+        logger.debug(f"Failed to check if task is due today: {e}")
+        return False
+
+
+def is_task_overdue(task: Dict[str, Any], user_timezone: str) -> bool:
+    """
+    Check if task is overdue in user's timezone
+    
+    Args:
+        task: Task dictionary
+        user_timezone: User's timezone string
+        
+    Returns:
+        True if task is overdue in user's timezone and not completed
+    """
+    try:
+        due_date = task.get("dueDate")
+        if not due_date:
+            return False
+            
+        # Skip completed tasks
+        if task.get("status") == 2:  # 2 means completed
+            return False
+            
+        # Parse task due date
+        task_datetime = parse_task_date(due_date)
+        if not task_datetime:
+            return False
+            
+        # Get user's today
+        user_today = get_user_today(user_timezone)
+        
+        # Convert task date to user timezone for comparison
+        if user_timezone and user_timezone.strip():
+            try:
+                tz = pytz.timezone(user_timezone)
+                task_local_date = task_datetime.astimezone(tz).date()
+            except Exception:
+                # If timezone conversion fails, use UTC
+                task_local_date = task_datetime.date()
+        else:
+            task_local_date = task_datetime.date()
+            
+        return task_local_date < user_today
+        
+    except Exception as e:
+        logger.debug(f"Failed to check if task is overdue: {e}")
+        return False

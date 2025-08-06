@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from auth import TickTickAuth
 from utils.helpers import search_tasks as search_tasks_helper
+from utils.timezone_utils import is_task_due_today, is_task_overdue
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,16 @@ class TickTickAdapter:
         if not self.client:
             self._initialize_client()
         return self.client
+
+    def _get_user_timezone(self) -> str:
+        """Get user's timezone from TickTick client"""
+        try:
+            client = self._ensure_client()
+            # ticktick-py library stores user timezone in client.time_zone
+            return getattr(client, 'time_zone', '')
+        except Exception as e:
+            logger.debug(f"Failed to get user timezone: {e}")
+            return ''
 
     def get_projects(self) -> List[Dict[str, Any]]:
         """Get all projects"""
@@ -207,31 +218,21 @@ class TickTickAdapter:
             return []
 
     def get_tasks_due_today(self) -> List[Dict[str, Any]]:
-        """Get tasks due today"""
+        """Get tasks due today in user's timezone"""
         try:
             client = self._ensure_client()
 
-            # Get all tasks and filter by due date
+            # Get all tasks and user timezone
             tasks = client.state.get("tasks", [])
-            today = datetime.now().date()
+            user_timezone = self._get_user_timezone()
 
+            # Filter tasks using timezone-aware comparison
             due_today = []
             for task in tasks:
-                # Only check 'dueDate' field (correct field name)
-                due_date = task.get("dueDate")
-                if due_date:
-                    try:
-                        # Handle different date formats
-                        if due_date.endswith("Z"):
-                            due_date = due_date.replace("Z", "+00:00")
-                        task_date = datetime.fromisoformat(due_date).date()
-                        if task_date == today:
-                            due_today.append(task)
-                    except Exception as parse_error:
-                        logger.debug(f"Failed to parse date {due_date}: {parse_error}")
-                        continue
+                if is_task_due_today(task, user_timezone):
+                    due_today.append(task)
 
-            logger.info(f"Found {len(due_today)} tasks due today")
+            logger.info(f"Found {len(due_today)} tasks due today (timezone: {user_timezone or 'UTC'})")
             return due_today
 
         except Exception as e:
@@ -239,31 +240,21 @@ class TickTickAdapter:
             return []
 
     def get_overdue_tasks(self) -> List[Dict[str, Any]]:
-        """Get overdue tasks"""
+        """Get overdue tasks in user's timezone"""
         try:
             client = self._ensure_client()
 
-            # Get all tasks and filter by overdue status
+            # Get all tasks and user timezone
             tasks = client.state.get("tasks", [])
-            today = datetime.now().date()
+            user_timezone = self._get_user_timezone()
 
+            # Filter tasks using timezone-aware comparison
             overdue = []
             for task in tasks:
-                # Only check 'dueDate' field (correct field name)
-                due_date = task.get("dueDate")
-                if due_date:
-                    try:
-                        # Handle different date formats
-                        if due_date.endswith("Z"):
-                            due_date = due_date.replace("Z", "+00:00")
-                        task_date = datetime.fromisoformat(due_date).date()
-                        if task_date < today and task.get("status") != 2:  # Not completed
-                            overdue.append(task)
-                    except Exception as parse_error:
-                        logger.debug(f"Failed to parse date {due_date}: {parse_error}")
-                        continue
+                if is_task_overdue(task, user_timezone):
+                    overdue.append(task)
 
-            logger.info(f"Found {len(overdue)} overdue tasks")
+            logger.info(f"Found {len(overdue)} overdue tasks (timezone: {user_timezone or 'UTC'})")
             return overdue
 
         except Exception as e:
