@@ -158,21 +158,21 @@ class TickTickAdapter:
         try:
             client = self._ensure_client()
 
-            # If no project_id provided or it's empty, try to get it from the task
-            if not project_id:
-                task = client.get_by_id(task_id)
-                if task:
-                    project_id = task.get('projectId', '')
+            # Create a minimal task object with required fields
+            task_obj = {
+                'id': task_id,
+                'projectId': project_id
+            }
 
             # Use ticktick.py library to delete task
-            result = client.task.delete(task_id)
+            result = client.task.delete(task_obj)
 
             logger.info(f"Deleted task: {task_id} from project: {project_id}")
             return True  # Return True if no exception occurred
 
         except Exception as e:
             logger.error(f"Failed to delete task {task_id}: {e}")
-            raise
+            return False
 
     def complete_task(self, task_id: str) -> bool:
         """Mark task as completed"""

@@ -95,3 +95,9 @@ markers = [
     "mcp: MCP related test marker",
     "asyncio: Async test marker"
 ]
+
+[dependency-groups]
+dev = [
+    "build",
+    "twine",
+]

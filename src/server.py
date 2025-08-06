@@ -307,7 +307,7 @@ async def create_task(
     content: Optional[str] = None,
     start_date: Optional[str] = None,
     due_date: Optional[str] = None,
-    priority: int = 0,
+    priority: str = "0",
 ) -> str:
     """Create a new task."""
     if not ensure_authenticated():
@@ -339,7 +339,7 @@ async def update_task(
     content: Optional[str] = None,
     start_date: Optional[str] = None,
     due_date: Optional[str] = None,
-    priority: Optional[int] = None,
+    priority: Optional[str] = None,
 ) -> str:
     """Update an existing task."""
     if not ensure_authenticated():
@@ -411,7 +411,7 @@ async def search_tasks(query: str) -> str:
 
 
 @server.tool()
-async def get_tasks_by_priority(priority: int) -> str:
+async def get_tasks_by_priority(priority: str) -> str:
     """Get tasks by priority level (0=None, 1=Low, 3=Medium, 5=High)."""
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
