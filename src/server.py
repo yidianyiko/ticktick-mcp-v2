@@ -309,7 +309,22 @@ async def create_task(
     due_date: Optional[str] = None,
     priority: str = "0",
 ) -> str:
-    """Create a new task."""
+    """
+    Create a new task.
+    
+    Args:
+        title: Task title/name
+        project_id: Optional project ID to place the task in
+        content: Optional task description/content
+        start_date: Optional start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
+        due_date: Optional due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
+        priority: Task priority as string ("0"=None, "1"=Low, "3"=Medium, "5"=High)
+    
+    Examples:
+        - Basic task: create_task(title="Buy groceries")
+        - Task with dates: create_task(title="Meeting", start_date="2024-12-28 14:00:00", due_date="2024-12-28 15:30:00")
+        - Task with content: create_task(title="Review document", content="Review the quarterly report", priority="3")
+    """
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
 
@@ -341,7 +356,23 @@ async def update_task(
     due_date: Optional[str] = None,
     priority: Optional[str] = None,
 ) -> str:
-    """Update an existing task."""
+    """
+    Update an existing task.
+    
+    Args:
+        task_id: ID of the task to update
+        project_id: Optional new project ID
+        title: Optional new task title/name
+        content: Optional new task description/content
+        start_date: Optional new start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
+        due_date: Optional new due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
+        priority: Optional new task priority as string ("0"=None, "1"=Low, "3"=Medium, "5"=High)
+    
+    Examples:
+        - Change title: update_task(task_id="12345", title="New task name")
+        - Update dates: update_task(task_id="12345", start_date="2024-12-29 09:00:00", due_date="2024-12-29 17:00:00")
+        - Change priority: update_task(task_id="12345", priority="5")
+    """
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
 

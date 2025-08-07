@@ -4,6 +4,7 @@ Task management MCP tools based on ticktick.py library
 """
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from adapters.client import get_client
@@ -37,27 +38,67 @@ def create_task(
     due_date: Optional[str] = None,
     priority: int = 0,
 ) -> Dict[str, Any]:
-    """Create new task"""
+    """
+    Create new task with proper date handling.
+    
+    Args:
+        title: Task title
+        project_id: Optional project ID
+        content: Optional task content/description
+        start_date: Optional start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format)
+        due_date: Optional due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format)
+        priority: Task priority (0=None, 1=Low, 3=Medium, 5=High)
+    
+    Returns:
+        Created task dictionary
+    
+    Example:
+        create_task(
+            title="Meeting with team",
+            start_date="2024-12-28 20:05:00",
+            due_date="2024-12-28 22:05:00"
+        )
+    """
     try:
         adapter = get_client()
 
-        # Prepare task data
-        task_data = {"title": title, "priority": priority}
-
-        # Only add projectId if provided
-        if project_id:
-            task_data["projectId"] = project_id
-
-        if content:
-            task_data["content"] = content
+        # Parse and validate date strings if provided
+        dt_start = None
+        dt_due = None
+        
         if start_date:
-            task_data["startDate"] = start_date
+            try:
+                dt_start = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                raise ValueError(f"Invalid start_date format. Expected 'YYYY-MM-DD HH:MM:SS', got '{start_date}'")
+        
         if due_date:
-            task_data["dueDate"] = due_date
+            try:
+                dt_due = datetime.strptime(due_date, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                raise ValueError(f"Invalid due_date format. Expected 'YYYY-MM-DD HH:MM:SS', got '{due_date}'")
 
-        task = adapter.create_task(**task_data)
+        # Get user's timezone from TickTick client (fallback to system timezone)
+        user_timezone = adapter._get_user_timezone()
+        if not user_timezone:
+            # Fallback to Asia/Shanghai if no timezone found
+            user_timezone = "Asia/Shanghai"
+            logger.info(f"Using fallback timezone: {user_timezone}")
+        else:
+            logger.info(f"Using user timezone: {user_timezone}")
 
-        # Convert UTC times to local times
+        # Use ticktick.py's builder method for proper date formatting
+        task = adapter.create_task_with_dates(
+            title=title,
+            project_id=project_id,
+            content=content,
+            start_date=dt_start,
+            due_date=dt_due,
+            priority=priority,
+            timezone=user_timezone
+        )
+
+        # Convert UTC times to local times for display
         task = convert_task_times_to_local(task)
 
         logger.info(f"Created task: {title}")
@@ -76,24 +117,56 @@ def update_task(
     due_date: Optional[str] = None,
     priority: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Update existing task"""
+    """
+    Update existing task with proper date handling.
+    
+    Args:
+        task_id: ID of the task to update
+        project_id: Optional project ID
+        title: Optional new task title
+        content: Optional new task content/description
+        start_date: Optional new start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format)
+        due_date: Optional new due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format)
+        priority: Optional new task priority (0=None, 1=Low, 3=Medium, 5=High)
+    
+    Returns:
+        Updated task dictionary
+    """
     try:
         adapter = get_client()
 
-        # Prepare update data
-        update_data = {}
-        if title:
-            update_data["title"] = title
-        if content:
-            update_data["content"] = content
+        # Parse and validate date strings if provided
+        dt_start = None
+        dt_due = None
+        
         if start_date:
-            update_data["startDate"] = start_date
+            try:
+                dt_start = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                raise ValueError(f"Invalid start_date format. Expected 'YYYY-MM-DD HH:MM:SS', got '{start_date}'")
+        
         if due_date:
-            update_data["dueDate"] = due_date
-        if priority is not None:
-            update_data["priority"] = priority
+            try:
+                dt_due = datetime.strptime(due_date, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                raise ValueError(f"Invalid due_date format. Expected 'YYYY-MM-DD HH:MM:SS', got '{due_date}'")
 
-        task = adapter.update_task(task_id, project_id, **update_data)
+        # Get user's timezone
+        user_timezone = adapter._get_user_timezone()
+        if not user_timezone:
+            user_timezone = "Asia/Shanghai"
+
+        # Use the adapter's update method with proper date handling
+        task = adapter.update_task_with_dates(
+            task_id=task_id,
+            project_id=project_id,
+            title=title,
+            content=content,
+            start_date=dt_start,
+            due_date=dt_due,
+            priority=priority,
+            timezone=user_timezone
+        )
 
         # Convert UTC times to local times
         task = convert_task_times_to_local(task)

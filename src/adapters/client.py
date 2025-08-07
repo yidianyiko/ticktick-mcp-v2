@@ -127,6 +127,50 @@ class TickTickAdapter:
             logger.error(f"Failed to create task: {e}")
             raise
 
+    def create_task_with_dates(
+        self, 
+        title: str, 
+        project_id: Optional[str] = None, 
+        content: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        due_date: Optional[datetime] = None,
+        priority: int = 0,
+        timezone: str = "Asia/Shanghai"
+    ) -> Dict[str, Any]:
+        """Create new task with proper date handling using ticktick.py builder"""
+        try:
+            client = self._ensure_client()
+
+            # Use ticktick.py's builder method for proper date formatting
+            builder_args = {"title": title}
+            
+            # Add dates if provided
+            if start_date:
+                builder_args["startDate"] = start_date
+            if due_date:
+                builder_args["dueDate"] = due_date
+            if timezone:
+                builder_args["timeZone"] = timezone
+            if project_id:
+                builder_args["projectId"] = project_id
+            if content:
+                builder_args["content"] = content
+            if priority:
+                builder_args["priority"] = priority
+
+            # Use builder to create properly formatted task
+            local_task = client.task.builder(**builder_args)
+
+            # Create the task
+            created_task = client.task.create(local_task)
+
+            logger.info(f"Created task with dates: {title}")
+            return created_task
+
+        except Exception as e:
+            logger.error(f"Failed to create task with dates: {e}")
+            raise
+
     def update_task(
         self, task_id: str, project_id: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
@@ -151,6 +195,55 @@ class TickTickAdapter:
 
         except Exception as e:
             logger.error(f"Failed to update task {task_id}: {e}")
+            raise
+
+    def update_task_with_dates(
+        self,
+        task_id: str,
+        project_id: Optional[str] = None,
+        title: Optional[str] = None,
+        content: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        due_date: Optional[datetime] = None,
+        priority: Optional[int] = None,
+        timezone: str = "Asia/Shanghai"
+    ) -> Dict[str, Any]:
+        """Update existing task with proper date handling using ticktick.py"""
+        try:
+            client = self._ensure_client()
+
+            # First get the existing task
+            task = client.get_by_id(task_id)
+            if not task:
+                raise Exception(f"Task {task_id} not found")
+
+            # Update basic fields
+            if title:
+                task["title"] = title
+            if content:
+                task["content"] = content
+            if priority is not None:
+                task["priority"] = priority
+
+            # Handle date updates using ticktick.py's date conversion
+            if start_date or due_date:
+                from ticktick.helpers.time_methods import convert_date_to_tick_tick_format
+                
+                if start_date:
+                    task["startDate"] = convert_date_to_tick_tick_format(start_date, timezone)
+                if due_date:
+                    task["dueDate"] = convert_date_to_tick_tick_format(due_date, timezone)
+                if timezone:
+                    task["timeZone"] = timezone
+
+            # Use ticktick.py library to update task
+            updated_task = client.task.update(task)
+
+            logger.info(f"Updated task with dates: {task_id}")
+            return updated_task
+
+        except Exception as e:
+            logger.error(f"Failed to update task with dates {task_id}: {e}")
             raise
 
     def delete_task(self, project_id: str, task_id: str) -> bool:
