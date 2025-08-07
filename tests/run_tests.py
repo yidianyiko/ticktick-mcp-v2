@@ -3,52 +3,60 @@
 Test runner for TickTick MCP v2
 """
 
+import argparse
 import subprocess
 import sys
-import argparse
 
 
 def run_unit_tests():
     """Run unit tests"""
-    print("🧪 Running unit tests...")
     result = subprocess.run(
-        ["python", "-m", "pytest", "tests/unit/", "-v"], capture_output=True, text=True
+        ["python", "-m", "pytest", "tests/unit/", "-v"],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     return result.returncode == 0
 
 
 def run_integration_tests():
     """Run integration tests"""
-    print("🔗 Running integration tests...")
     result = subprocess.run(
-        ["python", "-m", "pytest", "tests/integration/", "-v"], capture_output=True, text=True
+        ["python", "-m", "pytest", "tests/integration/", "-v"],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     return result.returncode == 0
 
 
 def run_e2e_tests():
     """Run end-to-end tests"""
-    print("🌐 Running end-to-end tests...")
     result = subprocess.run(
-        ["python", "-m", "pytest", "tests/e2e/", "-v"], capture_output=True, text=True
+        ["python", "-m", "pytest", "tests/e2e/", "-v"],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     return result.returncode == 0
 
 
 def run_all_tests():
     """Run all tests"""
-    print("🚀 Running all tests...")
     result = subprocess.run(
-        ["python", "-m", "pytest", "tests/", "-v"], capture_output=True, text=True
+        ["python", "-m", "pytest", "tests/", "-v"],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     return result.returncode == 0
 
 
 def run_quick_tests():
     """Run quick tests (unit tests only)"""
-    print("⚡ Running quick tests...")
     result = subprocess.run(
         ["python", "-m", "pytest", "tests/unit/", "-v", "--tb=short"],
+        check=False,
         capture_output=True,
         text=True,
     )
@@ -57,18 +65,20 @@ def run_quick_tests():
 
 def run_auth_tests():
     """Run authentication tests"""
-    print("🔐 Running authentication tests...")
     result = subprocess.run(
-        ["python", "-m", "pytest", "tests/unit/test_auth.py", "-v"], capture_output=True, text=True
+        ["python", "-m", "pytest", "tests/unit/test_auth.py", "-v"],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     return result.returncode == 0
 
 
 def run_mcp_tests():
     """Run MCP tests"""
-    print("🔧 Running MCP tests...")
     result = subprocess.run(
         ["python", "-m", "pytest", "tests/integration/test_mcp_server_modern.py", "-v"],
+        check=False,
         capture_output=True,
         text=True,
     )
@@ -96,15 +106,13 @@ def main():
     }
 
     if args.type not in test_functions:
-        print(f"❌ Unknown test type: {args.type}")
         sys.exit(1)
 
     success = test_functions[args.type]()
 
     if success:
-        print("✅ Tests passed!")
+        pass
     else:
-        print("❌ Tests failed!")
         sys.exit(1)
 
 

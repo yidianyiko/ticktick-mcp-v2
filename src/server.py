@@ -7,34 +7,57 @@ import asyncio
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dotenv import load_dotenv
-from mcp.server.stdio import stdio_server
 from mcp.server.fastmcp import FastMCP
-from mcp.types import Tool, TextContent
+
+from auth import TickTickAuth
+from tools.auth import AuthTools
+from tools.projects import (
+    create_project as create_project_impl,
+)
+from tools.projects import (
+    delete_project as delete_project_impl,
+)
+from tools.projects import (
+    get_project as get_project_impl,
+)
+from tools.projects import (
+    get_project_tasks as get_project_tasks_impl,
+)
 
 # Import our tools
 from tools.projects import (
     get_projects as get_projects_impl,
-    get_project as get_project_impl,
-    create_project as create_project_impl,
-    delete_project as delete_project_impl,
-    get_project_tasks as get_project_tasks_impl,
+)
+from tools.tasks import (
+    complete_task as complete_task_impl,
+)
+from tools.tasks import (
+    create_task as create_task_impl,
+)
+from tools.tasks import (
+    delete_task as delete_task_impl,
+)
+from tools.tasks import (
+    get_overdue_tasks as get_overdue_tasks_impl,
 )
 from tools.tasks import (
     get_tasks as get_tasks_impl,
-    create_task as create_task_impl,
-    update_task as update_task_impl,
-    delete_task as delete_task_impl,
-    complete_task as complete_task_impl,
-    search_tasks as search_tasks_impl,
-    get_tasks_by_priority as get_tasks_by_priority_impl,
-    get_tasks_due_today as get_tasks_due_today_impl,
-    get_overdue_tasks as get_overdue_tasks_impl,
 )
-from tools.auth import AuthTools
-from auth import TickTickAuth
+from tools.tasks import (
+    get_tasks_by_priority as get_tasks_by_priority_impl,
+)
+from tools.tasks import (
+    get_tasks_due_today as get_tasks_due_today_impl,
+)
+from tools.tasks import (
+    search_tasks as search_tasks_impl,
+)
+from tools.tasks import (
+    update_task as update_task_impl,
+)
 
 # Load environment variables
 load_dotenv()
@@ -51,7 +74,7 @@ auth_tools = AuthTools()
 
 
 # Global client check (similar to reference project)
-def ensure_authenticated():
+def ensure_authenticated() -> bool:
     """Ensure client is authenticated, similar to reference project's initialize_client."""
     auth = TickTickAuth()
     if not auth.is_authenticated():
@@ -60,16 +83,16 @@ def ensure_authenticated():
         password = os.getenv("TICKTICK_PASSWORD")
 
         if username and password:
-            logger.info("Attempting automatic authentication using environment variables")
+            logger.info(
+                "Attempting automatic authentication using environment variables",
+            )
             if auth.authenticate(username, password):
                 logger.info("Automatic authentication successful")
                 return True
-            else:
-                logger.warning("Automatic authentication failed")
-                return False
-        else:
-            logger.warning("No authentication credentials found")
+            logger.warning("Automatic authentication failed")
             return False
+        logger.warning("No authentication credentials found")
+        return False
     return True
 
 
@@ -77,16 +100,16 @@ def ensure_authenticated():
 def format_result(data: Any) -> str:
     """Format tool results as readable text."""
     # Add detailed debugging information
-    logger.info(f"format_result received data type: {type(data)}")
+    logger.info("format_result received data type: %s", type(data))
     if isinstance(data, list):
-        logger.info(f"format_result received list with {len(data)} items")
+        logger.info("format_result received list with %s items", len(data))
         if data and len(data) > 0:
-            logger.info(f"First item type: {type(data[0])}")
+            logger.info("First item type: %s", type(data[0]))
             if isinstance(data[0], dict):
-                logger.info(f"First item keys: {list(data[0].keys())}")
-                logger.info(f"First item content: {data[0]}")
+                logger.info("First item keys: %s", list(data[0].keys()))
+                logger.info("First item content: %s", data[0])
             else:
-                logger.info(f"First item: {data[0]}")
+                logger.info("First item: %s", data[0])
 
     if isinstance(data, list):
         if not data:
@@ -121,7 +144,7 @@ def format_result(data: Any) -> str:
             if isinstance(item, dict):
                 result += f"Item {i}:\n"
                 # Log the actual item structure
-                logger.info(f"Processing item {i}: {item}")
+                logger.info("Processing item %s: %s", i, item)
 
                 # Handle tasks - show key information
                 if "title" in item:
@@ -154,7 +177,7 @@ def format_result(data: Any) -> str:
                 result += f"{i}. {item}\n"
         return result
 
-    elif isinstance(data, dict):
+    if isinstance(data, dict):
         if "content" in data and isinstance(data["content"], list):
             # Handle MCP result format
             content = data["content"]
@@ -168,8 +191,7 @@ def format_result(data: Any) -> str:
                 result += f"{key}: {value}\n"
         return result
 
-    else:
-        return str(data)
+    return str(data)
 
 
 # Tool definitions
@@ -178,12 +200,14 @@ async def auth_login(username: str, password: str) -> str:
     """Login to TickTick with username and password."""
     try:
         result = await auth_tools.call_tool(
-            "auth_login", {"username": username, "password": password}, server
+            "auth_login",
+            {"username": username, "password": password},
+            server,
         )
         return format_result(result)
     except Exception as e:
-        logger.error(f"Error in auth_login: {e}")
-        return f"Error: {str(e)}"
+        logger.exception("Error in auth_login")
+        return f"Error: {e!s}"
 
 
 @server.tool()
@@ -193,8 +217,8 @@ async def auth_logout() -> str:
         result = await auth_tools.call_tool("auth_logout", {}, server)
         return format_result(result)
     except Exception as e:
-        logger.error(f"Error in auth_logout: {e}")
-        return f"Error: {str(e)}"
+        logger.exception("Error in auth_logout")
+        return f"Error: {e!s}"
 
 
 @server.tool()
@@ -204,8 +228,8 @@ async def auth_status() -> str:
         result = await auth_tools.call_tool("auth_status", {}, server)
         return format_result(result)
     except Exception as e:
-        logger.error(f"Error in auth_status: {e}")
-        return f"Error: {str(e)}"
+        logger.exception("Error in auth_status")
+        return f"Error: {e!s}"
 
 
 # Project Management Tools
@@ -219,8 +243,8 @@ async def get_projects() -> str:
         projects = get_projects_impl()
         return format_result(projects)
     except Exception as e:
-        logger.error(f"Error in get_projects: {e}")
-        return f"Error retrieving projects: {str(e)}"
+        logger.exception("Error in get_projects")
+        return f"Error retrieving projects: {e!s}"
 
 
 @server.tool()
@@ -233,12 +257,14 @@ async def get_project(project_id: str) -> str:
         project = get_project_impl(project_id)
         return format_result(project)
     except Exception as e:
-        logger.error(f"Error in get_project: {e}")
-        return f"Error retrieving project: {str(e)}"
+        logger.exception("Error in get_project")
+        return f"Error retrieving project: {e!s}"
 
 
 @server.tool()
-async def create_project(name: str, color: Optional[str] = None, view_mode: str = "list") -> str:
+async def create_project(
+    name: str, color: str | None = None, view_mode: str = "list",
+) -> str:
     """Create a new project."""
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
@@ -247,8 +273,8 @@ async def create_project(name: str, color: Optional[str] = None, view_mode: str 
         project = create_project_impl(name, color, view_mode)
         return format_result(project)
     except Exception as e:
-        logger.error(f"Error in create_project: {e}")
-        return f"Error creating project: {str(e)}"
+        logger.exception("Error in create_project")
+        return f"Error creating project: {e!s}"
 
 
 @server.tool()
@@ -261,8 +287,8 @@ async def delete_project(project_id: str) -> str:
         result = delete_project_impl(project_id)
         return format_result(result)
     except Exception as e:
-        logger.error(f"Error in delete_project: {e}")
-        return f"Error deleting project: {str(e)}"
+        logger.exception("Error in delete_project")
+        return f"Error deleting project: {e!s}"
 
 
 @server.tool()
@@ -275,8 +301,8 @@ async def get_project_tasks(project_id: str, include_completed: bool = False) ->
         tasks = get_project_tasks_impl(project_id, include_completed)
         return format_result(tasks)
     except Exception as e:
-        logger.error(f"Error in get_project_tasks: {e}")
-        return f"Error retrieving project tasks: {str(e)}"
+        logger.exception("Error in get_project_tasks")
+        return f"Error retrieving project tasks: {e!s}"
 
 
 # Task Management Tools
@@ -288,42 +314,47 @@ async def get_tasks(include_completed: bool = False) -> str:
 
     try:
         tasks = get_tasks_impl(include_completed)
-        logger.info(f"get_tasks received {len(tasks)} tasks from get_tasks_impl")
+        logger.info("get_tasks received %s tasks from get_tasks_impl", len(tasks))
         if tasks and len(tasks) > 0:
-            logger.info(f"First task type: {type(tasks[0])}")
+            logger.info("First task type: %s", type(tasks[0]))
             if isinstance(tasks[0], dict):
-                logger.info(f"First task keys: {list(tasks[0].keys())}")
-                logger.info(f"First task title: {tasks[0].get('title', 'No title')}")
+                logger.info("First task keys: %s", list(tasks[0].keys()))
+                logger.info("First task title: %s", tasks[0].get("title", "No title"))
         return format_result(tasks)
     except Exception as e:
-        logger.error(f"Error in get_tasks: {e}")
-        return f"Error retrieving tasks: {str(e)}"
+        logger.exception("Error in get_tasks")
+        return f"Error retrieving tasks: {e!s}"
 
 
 @server.tool()
 async def create_task(
     title: str,
-    project_id: Optional[str] = None,
-    content: Optional[str] = None,
-    start_date: Optional[str] = None,
-    due_date: Optional[str] = None,
+    project_id: str | None = None,
+    content: str | None = None,
+    start_date: str | None = None,
+    due_date: str | None = None,
     priority: str = "0",
 ) -> str:
     """
     Create a new task.
-    
+
     Args:
         title: Task title/name
         project_id: Optional project ID to place the task in
         content: Optional task description/content
-        start_date: Optional start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
+        start_date: Optional start date in format "YYYY-MM-DD HH:MM:SS"
+            (24-hour format, local timezone)
         due_date: Optional due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
         priority: Task priority as string ("0"=None, "1"=Low, "3"=Medium, "5"=High)
-    
+
     Examples:
         - Basic task: create_task(title="Buy groceries")
-        - Task with dates: create_task(title="Meeting", start_date="2024-12-28 14:00:00", due_date="2024-12-28 15:30:00")
-        - Task with content: create_task(title="Review document", content="Review the quarterly report", priority="3")
+        - Task with dates: create_task(
+            title="Meeting", start_date="2024-12-28 14:00:00", due_date="2024-12-28 15:30:00"
+        )
+        - Task with content: create_task(
+            title="Review document", content="Review the quarterly report", priority="3"
+        )
     """
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
@@ -338,27 +369,29 @@ async def create_task(
                 return f"Error: priority must be a valid integer, got '{priority}'"
         else:
             converted_priority = priority
-        
-        task = create_task_impl(title, project_id, content, start_date, due_date, converted_priority)
+
+        task = create_task_impl(
+            title, project_id, content, start_date, due_date, converted_priority,
+        )
         return format_result(task)
     except Exception as e:
-        logger.error(f"Error in create_task: {e}")
-        return f"Error creating task: {str(e)}"
+        logger.exception("Error in create_task")
+        return f"Error creating task: {e!s}"
 
 
 @server.tool()
 async def update_task(
     task_id: str,
-    project_id: Optional[str] = None,
-    title: Optional[str] = None,
-    content: Optional[str] = None,
-    start_date: Optional[str] = None,
-    due_date: Optional[str] = None,
-    priority: Optional[str] = None,
+    project_id: str | None = None,
+    title: str | None = None,
+    content: str | None = None,
+    start_date: str | None = None,
+    due_date: str | None = None,
+    priority: str | None = None,
 ) -> str:
     """
     Update an existing task.
-    
+
     Args:
         task_id: ID of the task to update
         project_id: Optional new project ID
@@ -367,7 +400,7 @@ async def update_task(
         start_date: Optional new start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
         due_date: Optional new due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
         priority: Optional new task priority as string ("0"=None, "1"=Low, "3"=Medium, "5"=High)
-    
+
     Examples:
         - Change title: update_task(task_id="12345", title="New task name")
         - Update dates: update_task(task_id="12345", start_date="2024-12-29 09:00:00", due_date="2024-12-29 17:00:00")
@@ -387,12 +420,20 @@ async def update_task(
                     return f"Error: priority must be a valid integer, got '{priority}'"
             else:
                 converted_priority = priority
-        
-        task = update_task_impl(task_id, project_id, title, content, start_date, due_date, converted_priority)
+
+        task = update_task_impl(
+            task_id,
+            project_id,
+            title,
+            content,
+            start_date,
+            due_date,
+            converted_priority,
+        )
         return format_result(task)
     except Exception as e:
-        logger.error(f"Error in update_task: {e}")
-        return f"Error updating task: {str(e)}"
+        logger.exception("Error in update_task")
+        return f"Error updating task: {e!s}"
 
 
 @server.tool()
@@ -406,11 +447,10 @@ async def delete_task(project_id: str, task_id: str) -> str:
         # Handle boolean result from delete operation
         if isinstance(result, bool):
             return f"Task deletion {'successful' if result else 'failed'}"
-        else:
-            return format_result(result)
+        return format_result(result)
     except Exception as e:
-        logger.error(f"Error in delete_task: {e}")
-        return f"Error deleting task: {str(e)}"
+        logger.exception("Error in delete_task")
+        return f"Error deleting task: {e!s}"
 
 
 @server.tool()
@@ -423,8 +463,8 @@ async def complete_task(task_id: str) -> str:
         result = complete_task_impl(task_id)
         return format_result(result)
     except Exception as e:
-        logger.error(f"Error in complete_task: {e}")
-        return f"Error completing task: {str(e)}"
+        logger.exception("Error in complete_task")
+        return f"Error completing task: {e!s}"
 
 
 @server.tool()
@@ -437,8 +477,8 @@ async def search_tasks(query: str) -> str:
         tasks = search_tasks_impl(query)
         return format_result(tasks)
     except Exception as e:
-        logger.error(f"Error in search_tasks: {e}")
-        return f"Error searching tasks: {str(e)}"
+        logger.exception("Error in search_tasks")
+        return f"Error searching tasks: {e!s}"
 
 
 @server.tool()
@@ -457,12 +497,12 @@ async def get_tasks_by_priority(priority: str) -> str:
                 return f"Error: priority must be a valid integer, got '{priority}'"
         else:
             converted_priority = priority
-        
+
         tasks = get_tasks_by_priority_impl(converted_priority)
         return format_result(tasks)
     except Exception as e:
-        logger.error(f"Error in get_tasks_by_priority: {e}")
-        return f"Error retrieving tasks by priority: {str(e)}"
+        logger.exception("Error in get_tasks_by_priority")
+        return f"Error retrieving tasks by priority: {e!s}"
 
 
 @server.tool()
@@ -475,8 +515,8 @@ async def get_tasks_due_today() -> str:
         tasks = get_tasks_due_today_impl()
         return format_result(tasks)
     except Exception as e:
-        logger.error(f"Error in get_tasks_due_today: {e}")
-        return f"Error retrieving tasks due today: {str(e)}"
+        logger.exception("Error in get_tasks_due_today")
+        return f"Error retrieving tasks due today: {e!s}"
 
 
 @server.tool()
@@ -489,11 +529,11 @@ async def get_overdue_tasks() -> str:
         tasks = get_overdue_tasks_impl()
         return format_result(tasks)
     except Exception as e:
-        logger.error(f"Error in get_overdue_tasks: {e}")
-        return f"Error retrieving overdue tasks: {str(e)}"
+        logger.exception("Error in get_overdue_tasks")
+        return f"Error retrieving overdue tasks: {e!s}"
 
 
-async def main():
+async def main() -> None:
     """Main function to run the server."""
     # Check authentication at startup (similar to reference project)
     if not ensure_authenticated():

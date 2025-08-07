@@ -6,14 +6,16 @@ Provides various general helper functions
 
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
+from typing import Any
+
+from utils.timezone_utils import is_task_due_today, is_task_overdue
 
 logger = logging.getLogger(__name__)
 
 
-def load_credentials() -> Optional[Dict[str, str]]:
+def load_credentials() -> dict[str, str] | None:
     """
     Load saved credentials
 
@@ -26,10 +28,10 @@ def load_credentials() -> Optional[Dict[str, str]]:
         return None
 
     try:
-        with open(config_file, "r") as f:
+        with open(config_file) as f:
             return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading credentials: {e}")
+    except Exception:
+        logger.exception("Error loading credentials")
         return None
 
 
@@ -57,12 +59,12 @@ def save_credentials(username: str, password: str) -> bool:
         logger.info("Credentials saved successfully")
         return True
 
-    except Exception as e:
-        logger.error(f"Error saving credentials: {e}")
+    except Exception:
+        logger.exception("Error saving credentials")
         return False
 
 
-def format_task_info(task: Dict[str, Any]) -> str:
+def format_task_info(task: dict[str, Any]) -> str:
     """
     Format task information
 
@@ -95,7 +97,7 @@ def format_task_info(task: Dict[str, Any]) -> str:
     return info
 
 
-def format_project_info(project: Dict[str, Any]) -> str:
+def format_project_info(project: dict[str, Any]) -> str:
     """
     Format project information
 
@@ -116,7 +118,7 @@ def format_project_info(project: Dict[str, Any]) -> str:
     return info
 
 
-def parse_date_string(date_str: str) -> Optional[datetime]:
+def parse_date_string(date_str: str) -> datetime | None:
     """
     Parse date string
 
@@ -131,7 +133,12 @@ def parse_date_string(date_str: str) -> Optional[datetime]:
 
     try:
         # Try multiple date formats
-        formats = ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%SZ"]
+        formats = [
+            "%Y-%m-%d",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%SZ",
+        ]
 
         for fmt in formats:
             try:
@@ -139,11 +146,11 @@ def parse_date_string(date_str: str) -> Optional[datetime]:
             except ValueError:
                 continue
 
-        logger.warning(f"Could not parse date string: {date_str}")
+        logger.warning("Could not parse date string: %s", date_str)
         return None
 
-    except Exception as e:
-        logger.error(f"Error parsing date string: {e}")
+    except Exception:
+        logger.exception("Error parsing date string")
         return None
 
 
@@ -175,7 +182,9 @@ def get_status_text(status: int) -> str:
     return status_map.get(status, "Unknown")
 
 
-def filter_tasks_by_priority(tasks: List[Dict[str, Any]], priority: int) -> List[Dict[str, Any]]:
+def filter_tasks_by_priority(
+    tasks: list[dict[str, Any]], priority: int,
+) -> list[dict[str, Any]]:
     """
     Filter tasks by priority
 
@@ -189,7 +198,9 @@ def filter_tasks_by_priority(tasks: List[Dict[str, Any]], priority: int) -> List
     return [task for task in tasks if task.get("priority") == priority]
 
 
-def filter_tasks_by_status(tasks: List[Dict[str, Any]], status: int) -> List[Dict[str, Any]]:
+def filter_tasks_by_status(
+    tasks: list[dict[str, Any]], status: int,
+) -> list[dict[str, Any]]:
     """
     Filter tasks by status
 
@@ -203,7 +214,7 @@ def filter_tasks_by_status(tasks: List[Dict[str, Any]], status: int) -> List[Dic
     return [task for task in tasks if task.get("status") == status]
 
 
-def search_tasks(tasks: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
+def search_tasks(tasks: list[dict[str, Any]], query: str) -> list[dict[str, Any]]:
     """
     Search tasks
 
@@ -230,7 +241,9 @@ def search_tasks(tasks: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]
     return results
 
 
-def get_tasks_due_today(tasks: List[Dict[str, Any]], user_timezone: str = '') -> List[Dict[str, Any]]:
+def get_tasks_due_today(
+    tasks: list[dict[str, Any]], user_timezone: str = "",
+) -> list[dict[str, Any]]:
     """
     Get tasks due today in user's timezone
 
@@ -241,9 +254,6 @@ def get_tasks_due_today(tasks: List[Dict[str, Any]], user_timezone: str = '') ->
     Returns:
         List: Tasks due today
     """
-    # Import here to avoid circular imports
-    from utils.timezone_utils import is_task_due_today
-    
     results = []
     for task in tasks:
         if is_task_due_today(task, user_timezone):
@@ -252,7 +262,9 @@ def get_tasks_due_today(tasks: List[Dict[str, Any]], user_timezone: str = '') ->
     return results
 
 
-def get_overdue_tasks(tasks: List[Dict[str, Any]], user_timezone: str = '') -> List[Dict[str, Any]]:
+def get_overdue_tasks(
+    tasks: list[dict[str, Any]], user_timezone: str = "",
+) -> list[dict[str, Any]]:
     """
     Get overdue tasks in user's timezone
 
@@ -263,9 +275,6 @@ def get_overdue_tasks(tasks: List[Dict[str, Any]], user_timezone: str = '') -> L
     Returns:
         List: Overdue task list
     """
-    # Import here to avoid circular imports
-    from utils.timezone_utils import is_task_overdue
-    
     results = []
     for task in tasks:
         if is_task_overdue(task, user_timezone):
@@ -274,7 +283,7 @@ def get_overdue_tasks(tasks: List[Dict[str, Any]], user_timezone: str = '') -> L
     return results
 
 
-def validate_task_data(task_data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_task_data(task_data: dict[str, Any]) -> dict[str, Any]:
     """
     Validate task data
 
@@ -305,8 +314,12 @@ def validate_task_data(task_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def create_task_builder(
-    title: str, content: str = "", project_id: str = None, priority: int = 0, due_date: str = None
-) -> Dict[str, Any]:
+    title: str,
+    content: str = "",
+    project_id: str | None = None,
+    priority: int = 0,
+    due_date: str | None = None,
+) -> dict[str, Any]:
     """
     Create task builder
 

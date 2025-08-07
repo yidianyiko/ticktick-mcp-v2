@@ -4,19 +4,19 @@ Pytest configuration file
 Set up test environment and shared fixtures
 """
 
-import pytest
 import asyncio
-import os
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # Import modules needed for tests
 from src.auth import TickTickAuth
-from src.tools.auth import AuthTools
 from src.tools import projects, tasks
+from src.tools.auth import AuthTools
 
 
 @pytest.fixture(scope="session")

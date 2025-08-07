@@ -3,11 +3,10 @@
 Modern MCP Server Integration Tests
 """
 
-import pytest
 import asyncio
-import sys
-import os
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.integration
@@ -20,7 +19,7 @@ class TestMCPServerModern:
         """Test server connection and initialization"""
         try:
             from mcp.client.session import ClientSession
-            from mcp.client.stdio import stdio_client, StdioServerParameters
+            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             # Create server parameters
             server_params = StdioServerParameters(
@@ -37,12 +36,10 @@ class TestMCPServerModern:
 
                     # Test basic connection
                     assert session is not None
-                    print("✅ Server connection successful")
 
                     return True
 
-        except Exception as e:
-            print(f"❌ Server connection test failed: {e}")
+        except Exception:
             return False
 
     @pytest.mark.asyncio
@@ -50,7 +47,7 @@ class TestMCPServerModern:
         """Test tools listing functionality"""
         try:
             from mcp.client.session import ClientSession
-            from mcp.client.stdio import stdio_client, StdioServerParameters
+            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -68,7 +65,6 @@ class TestMCPServerModern:
 
                     # Verify tools are available
                     assert len(tools) > 0, "No tools found"
-                    print(f"✅ Found {len(tools)} tools")
 
                     # Check for essential tools
                     tool_names = [tool.name for tool in tools]
@@ -76,14 +72,13 @@ class TestMCPServerModern:
 
                     for tool_name in essential_tools:
                         if tool_name in tool_names:
-                            print(f"✅ Found essential tool: {tool_name}")
+                            pass
                         else:
-                            print(f"⚠️ Missing essential tool: {tool_name}")
+                            pass
 
                     return True
 
-        except Exception as e:
-            print(f"❌ Tools listing test failed: {e}")
+        except Exception:
             return False
 
     @pytest.mark.asyncio
@@ -91,7 +86,7 @@ class TestMCPServerModern:
         """Test auth status tool"""
         try:
             from mcp.client.session import ClientSession
-            from mcp.client.stdio import stdio_client, StdioServerParameters
+            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -111,11 +106,9 @@ class TestMCPServerModern:
                     assert isinstance(result, dict), "Result should be a dictionary"
                     assert "content" in result, "Result should have content field"
 
-                    print("✅ Auth status tool test successful")
                     return True
 
-        except Exception as e:
-            print(f"❌ Auth status tool test failed: {e}")
+        except Exception:
             return False
 
     @pytest.mark.asyncio
@@ -123,7 +116,7 @@ class TestMCPServerModern:
         """Test get projects tool"""
         try:
             from mcp.client.session import ClientSession
-            from mcp.client.stdio import stdio_client, StdioServerParameters
+            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -143,11 +136,9 @@ class TestMCPServerModern:
                     assert isinstance(result, dict), "Result should be a dictionary"
                     assert "content" in result, "Result should have content field"
 
-                    print("✅ Get projects tool test successful")
                     return True
 
-        except Exception as e:
-            print(f"❌ Get projects tool test failed: {e}")
+        except Exception:
             return False
 
     @pytest.mark.asyncio
@@ -155,7 +146,7 @@ class TestMCPServerModern:
         """Test get tasks tool"""
         try:
             from mcp.client.session import ClientSession
-            from mcp.client.stdio import stdio_client, StdioServerParameters
+            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -169,17 +160,17 @@ class TestMCPServerModern:
                     await asyncio.sleep(2)
 
                     # Test get tasks tool
-                    result = await session.call_tool("get_tasks", {"include_completed": False})
+                    result = await session.call_tool(
+                        "get_tasks", {"include_completed": False},
+                    )
 
                     # Verify result format
                     assert isinstance(result, dict), "Result should be a dictionary"
                     assert "content" in result, "Result should have content field"
 
-                    print("✅ Get tasks tool test successful")
                     return True
 
-        except Exception as e:
-            print(f"❌ Get tasks tool test failed: {e}")
+        except Exception:
             return False
 
 
@@ -193,7 +184,7 @@ class TestMCPServerErrorHandling:
         """Test handling of invalid tool calls"""
         try:
             from mcp.client.session import ClientSession
-            from mcp.client.stdio import stdio_client, StdioServerParameters
+            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -208,15 +199,12 @@ class TestMCPServerErrorHandling:
 
                     # Test invalid tool call
                     try:
-                        result = await session.call_tool("non_existent_tool", {})
-                        print("⚠️ Invalid tool call should have failed")
+                        await session.call_tool("non_existent_tool", {})
                         return False
-                    except Exception as e:
-                        print(f"✅ Invalid tool call properly handled: {e}")
+                    except Exception:
                         return True
 
-        except Exception as e:
-            print(f"❌ Error handling test failed: {e}")
+        except Exception:
             return False
 
     @pytest.mark.asyncio
@@ -224,7 +212,7 @@ class TestMCPServerErrorHandling:
         """Test server stability with multiple requests"""
         try:
             from mcp.client.session import ClientSession
-            from mcp.client.stdio import stdio_client, StdioServerParameters
+            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -238,18 +226,14 @@ class TestMCPServerErrorHandling:
                     await asyncio.sleep(2)
 
                     # Make multiple requests to test stability
-                    for i in range(3):
+                    for _i in range(3):
                         try:
                             result = await session.call_tool("auth_status", {})
                             assert isinstance(result, dict)
-                            print(f"✅ Request {i + 1} successful")
-                        except Exception as e:
-                            print(f"❌ Request {i + 1} failed: {e}")
+                        except Exception:
                             return False
 
-                    print("✅ Server stability test passed")
                     return True
 
-        except Exception as e:
-            print(f"❌ Server stability test failed: {e}")
+        except Exception:
             return False

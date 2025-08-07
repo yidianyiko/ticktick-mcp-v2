@@ -2,16 +2,16 @@
 Tests for timezone conversion utilities
 """
 
-import pytest
-from datetime import datetime, date
+from datetime import date, datetime
+
 from src.utils.timezone_utils import (
-    convert_utc_to_local_time,
     convert_task_times_to_local,
     convert_tasks_times_to_local,
+    convert_utc_to_local_time,
     get_user_today,
-    parse_task_date,
     is_task_due_today,
     is_task_overdue,
+    parse_task_date,
 )
 
 
@@ -146,8 +146,8 @@ class TestTimezoneAwareDateComparison:
     def test_get_user_today_with_timezone(self):
         """Test getting today's date in user timezone"""
         # Test with different timezones
-        timezones = ['Asia/Shanghai', 'America/New_York', 'Europe/London']
-        
+        timezones = ["Asia/Shanghai", "America/New_York", "Europe/London"]
+
         for tz in timezones:
             today = get_user_today(tz)
             assert isinstance(today, date)
@@ -156,14 +156,14 @@ class TestTimezoneAwareDateComparison:
 
     def test_get_user_today_without_timezone(self):
         """Test getting today's date without timezone (UTC fallback)"""
-        today = get_user_today('')
+        today = get_user_today("")
         assert isinstance(today, date)
         # Should be a valid date
         assert today.year >= 2024
 
     def test_get_user_today_invalid_timezone(self):
         """Test handling of invalid timezone"""
-        today = get_user_today('Invalid/Timezone')
+        today = get_user_today("Invalid/Timezone")
         assert isinstance(today, date)
         # Should fallback to UTC and still return a valid date
         assert today.year >= 2024
@@ -175,7 +175,7 @@ class TestTimezoneAwareDateComparison:
             ("2024-01-15T16:00:00Z", datetime(2024, 1, 15, 16, 0, 0)),
             ("2024-01-15T16:00:00+00:00", datetime(2024, 1, 15, 16, 0, 0)),
         ]
-        
+
         for date_str, expected_dt in test_cases:
             result = parse_task_date(date_str)
             assert result is not None
@@ -205,24 +205,26 @@ class TestTimezoneAwareDateComparison:
         utc_now = datetime.utcnow()
         task = {
             "dueDate": utc_now.strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
-            "timeZone": "UTC"
+            "timeZone": "UTC",
         }
-        
+
         # Should be due today in UTC
-        result = is_task_due_today(task, '')
+        result = is_task_due_today(task, "")
         assert result is True
 
     def test_is_task_due_today_different_timezone(self):
         """Test task due today check across timezones"""
         # Create a task due at midnight UTC (start of day)
-        utc_midnight = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        utc_midnight = datetime.utcnow().replace(
+            hour=0, minute=0, second=0, microsecond=0,
+        )
         task = {
             "dueDate": utc_midnight.strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
         }
-        
+
         # Test with different timezones
-        timezones = ['Asia/Shanghai', 'America/New_York', 'Europe/London']
-        
+        timezones = ["Asia/Shanghai", "America/New_York", "Europe/London"]
+
         for tz in timezones:
             result = is_task_due_today(task, tz)
             # Result depends on the timezone, but should be boolean
@@ -231,15 +233,15 @@ class TestTimezoneAwareDateComparison:
     def test_is_task_due_today_no_due_date(self):
         """Test task due today check with no due date"""
         task = {"title": "Task without due date"}
-        
-        result = is_task_due_today(task, 'Asia/Shanghai')
+
+        result = is_task_due_today(task, "Asia/Shanghai")
         assert result is False
 
     def test_is_task_due_today_invalid_due_date(self):
         """Test task due today check with invalid due date"""
         task = {"dueDate": "invalid-date"}
-        
-        result = is_task_due_today(task, 'Asia/Shanghai')
+
+        result = is_task_due_today(task, "Asia/Shanghai")
         assert result is False
 
     def test_is_task_overdue_not_completed(self):
@@ -247,13 +249,13 @@ class TestTimezoneAwareDateComparison:
         # Create a task due yesterday
         yesterday = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         yesterday = yesterday.replace(day=yesterday.day - 1)
-        
+
         task = {
             "dueDate": yesterday.strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
-            "status": 0  # Not completed
+            "status": 0,  # Not completed
         }
-        
-        result = is_task_overdue(task, '')
+
+        result = is_task_overdue(task, "")
         assert result is True
 
     def test_is_task_overdue_completed(self):
@@ -261,40 +263,40 @@ class TestTimezoneAwareDateComparison:
         # Create a completed task due yesterday
         yesterday = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         yesterday = yesterday.replace(day=yesterday.day - 1)
-        
+
         task = {
             "dueDate": yesterday.strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
-            "status": 2  # Completed
+            "status": 2,  # Completed
         }
-        
-        result = is_task_overdue(task, '')
+
+        result = is_task_overdue(task, "")
         assert result is False
 
     def test_is_task_overdue_due_today(self):
         """Test overdue task check for task due today"""
         # Create a task due today
         today = datetime.utcnow()
-        
+
         task = {
             "dueDate": today.strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
-            "status": 0  # Not completed
+            "status": 0,  # Not completed
         }
-        
-        result = is_task_overdue(task, '')
+
+        result = is_task_overdue(task, "")
         assert result is False
 
     def test_is_task_overdue_no_due_date(self):
         """Test overdue task check with no due date"""
         task = {"title": "Task without due date", "status": 0}
-        
-        result = is_task_overdue(task, 'Asia/Shanghai')
+
+        result = is_task_overdue(task, "Asia/Shanghai")
         assert result is False
 
     def test_is_task_overdue_invalid_due_date(self):
         """Test overdue task check with invalid due date"""
         task = {"dueDate": "invalid-date", "status": 0}
-        
-        result = is_task_overdue(task, 'Asia/Shanghai')
+
+        result = is_task_overdue(task, "Asia/Shanghai")
         assert result is False
 
     def test_timezone_consistency(self):
@@ -303,24 +305,24 @@ class TestTimezoneAwareDateComparison:
         utc_now = datetime.utcnow()
         task = {
             "dueDate": utc_now.strftime("%Y-%m-%dT%H:%M:%S.000+0000"),
-            "status": 0
+            "status": 0,
         }
-        
-        timezone = 'Asia/Shanghai'
-        
+
+        timezone = "Asia/Shanghai"
+
         # Get user's today
         user_today = get_user_today(timezone)
-        
+
         # Check if task is due today
         is_due_today = is_task_due_today(task, timezone)
-        
+
         # Check if task is overdue
         is_overdue = is_task_overdue(task, timezone)
-        
+
         # If task is due today, it shouldn't be overdue
         if is_due_today:
             assert not is_overdue
-        
+
         # All results should be boolean
         assert isinstance(user_today, date)
         assert isinstance(is_due_today, bool)

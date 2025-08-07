@@ -5,10 +5,7 @@ TickTick MCP CLI - Command Line Interface
 
 import asyncio
 import logging
-import os
 import sys
-from pathlib import Path
-from typing import Optional
 
 import click
 from dotenv import load_dotenv
@@ -25,19 +22,23 @@ load_dotenv()
 
 
 @click.group()
-def cli():
+def cli() -> None:
     """TickTick MCP Server CLI"""
-    pass
 
 
 @cli.command()
 @click.option(
-    "--username", prompt="TickTick Username/Email", help="Your TickTick username or email"
+    "--username",
+    prompt="TickTick Username/Email",
+    help="Your TickTick username or email",
 )
 @click.option(
-    "--password", prompt="TickTick Password", hide_input=True, help="Your TickTick password"
+    "--password",
+    prompt="TickTick Password",
+    hide_input=True,
+    help="Your TickTick password",
 )
-def auth(username: str, password: str):
+def auth(username: str, password: str) -> None:
     """Authenticate with TickTick using username and password"""
     try:
         auth_handler = TickTickAuth()
@@ -47,7 +48,9 @@ def auth(username: str, password: str):
             click.echo("✅ Authentication successful! Credentials saved.")
             click.echo("You can now run the server with: uv run ticktick-mcp run")
         else:
-            click.echo("❌ Authentication failed. Please check your username and password.")
+            click.echo(
+                "❌ Authentication failed. Please check your username and password.",
+            )
             sys.exit(1)
 
     except Exception as e:
@@ -58,14 +61,17 @@ def auth(username: str, password: str):
 @cli.command()
 @click.option("--host", default="localhost", help="Host for the callback server")
 @click.option("--port", default=8000, help="Port for the callback server")
-def run(host: str, port: int):
+def run(host: str, port: int) -> None:
     """Run TickTick MCP server"""
     try:
         # Check authentication status
         auth_handler = TickTickAuth()
 
         if not auth_handler.is_authenticated():
-            click.echo("❌ Not authenticated. Please run authentication command first:", err=True)
+            click.echo(
+                "❌ Not authenticated. Please run authentication command first:",
+                err=True,
+            )
             click.echo("uv run ticktick-mcp auth", err=True)
             sys.exit(1)
 
@@ -86,7 +92,7 @@ def run(host: str, port: int):
 
 
 @cli.command()
-def test():
+def test() -> None:
     """Test TickTick MCP server configuration"""
     try:
         auth_handler = TickTickAuth()
@@ -97,7 +103,7 @@ def test():
 
         # Try to get client
         try:
-            client = auth_handler.get_client()
+            auth_handler.get_client()
             username = auth_handler.get_username()
             click.echo(f"✅ Configuration correct! Authenticated as: {username}")
             click.echo("✅ Client connection successful")
@@ -111,7 +117,7 @@ def test():
 
 
 @cli.command()
-def logout():
+def logout() -> None:
     """Logout and clear saved credentials"""
     try:
         auth_handler = TickTickAuth()
