@@ -4,11 +4,9 @@ A Model Context Protocol (MCP) server for TickTick that enables interacting with
 
 ## Project Purpose
 
-This project addresses two key challenges in the current TickTick MCP landscape:
+1. **Easy Authentication**: Direct username/password authentication.
 
-1. **Complex Authentication**: The v1 interface requires overly complex authentication methods, which are not as straightforward as direct username/password authentication.
-
-2. **Limited API Functionality**: The official v1 API interfaces provide limited functionality and make it cumbersome to implement more complex features. For example, other TickTick MCP implementations cannot even retrieve tasks from the Inbox.
+2. **Rich API Functionality**: The v2 interfaces easy to implement more complex features. For example, other v1 TickTick interface cannot even retrieve tasks from the Inbox.
 
 ## Features
 
