@@ -7,9 +7,17 @@ import asyncio
 import contextlib
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import pytest
+from mcp.client.session import ClientSession
+from mcp.client.stdio import StdioServerParameters, stdio_client
+
+try:
+    import psutil
+except ImportError:
+    psutil = None  # type: ignore[assignment]
 
 # Add src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -23,8 +31,6 @@ class TestFullWorkflowIntegration:
     async def test_project_task_lifecycle(self):
         """Test complete project and task lifecycle"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -32,8 +38,7 @@ class TestFullWorkflowIntegration:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # 1. Get initial project count
                     initial_projects = await session.call_tool("get_projects", {})
@@ -73,8 +78,6 @@ class TestFullWorkflowIntegration:
                     return True
 
         except Exception:
-            import traceback
-
             traceback.print_exc()
             return False
 
@@ -82,8 +85,6 @@ class TestFullWorkflowIntegration:
     async def test_error_recovery_integration(self):
         """Test error recovery and resilience"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -91,8 +92,7 @@ class TestFullWorkflowIntegration:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # 1. Test invalid parameters
                     with contextlib.suppress(Exception):
@@ -123,8 +123,6 @@ class TestFullWorkflowIntegration:
     async def test_concurrent_requests_integration(self):
         """Test handling of concurrent requests"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -132,8 +130,7 @@ class TestFullWorkflowIntegration:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # Create multiple concurrent requests
                     tasks_futures = [
@@ -180,8 +177,6 @@ class TestDataConsistencyIntegration:
     async def test_task_filtering_consistency(self):
         """Test consistency of task filtering across different methods"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -189,8 +184,7 @@ class TestDataConsistencyIntegration:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # Get all tasks
                     all_tasks = await session.call_tool(
@@ -239,8 +233,6 @@ class TestDataConsistencyIntegration:
     async def test_priority_filtering_consistency(self):
         """Test consistency of priority filtering"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -248,8 +240,7 @@ class TestDataConsistencyIntegration:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # Get tasks by different priority levels
                     priority_results = {}
@@ -286,8 +277,6 @@ class TestPerformanceIntegration:
     async def test_response_time_integration(self):
         """Test response times for various operations"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -347,11 +336,8 @@ class TestPerformanceIntegration:
     async def test_memory_usage_integration(self):
         """Test memory usage doesn't grow excessively"""
         try:
-            import os
-
-            import psutil
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
+            if psutil is None:
+                return True
 
             server_params = StdioServerParameters(
                 command="python",
@@ -403,8 +389,7 @@ class TestLongRunningIntegration:
     async def test_server_stability_long_running(self):
         """Test server stability over extended period"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
+
 
             server_params = StdioServerParameters(
                 command="python",

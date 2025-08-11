@@ -10,6 +10,9 @@ import pytz
 
 logger = logging.getLogger(__name__)
 
+# TickTick status constants
+COMPLETED_STATUS = 2
+
 
 def convert_utc_to_local_time(utc_time_str: str, timezone_str: str) -> str:
     """
@@ -42,8 +45,8 @@ def convert_utc_to_local_time(utc_time_str: str, timezone_str: str) -> str:
         # If no timezone info, return UTC time as is
         return utc_dt.strftime("%Y-%m-%dT%H:%M:%S")
 
-    except Exception as e:
-        logger.exception(
+    except (ValueError, TypeError, pytz.UnknownTimeZoneError) as e:
+        logger.debug(
             "Failed to convert time %s with timezone %s: %s",
             utc_time_str,
             timezone_str,
@@ -88,10 +91,10 @@ def convert_task_times_to_local(task: dict[str, Any]) -> dict[str, Any]:
                 task["createdTime"], timezone_str,
             )
 
+    except (ValueError, TypeError) as e:
+        logger.debug("Failed to convert task times: %s", e)
         return task
-
-    except Exception:
-        logger.exception("Failed to convert task times")
+    else:
         return task
 
 
@@ -110,10 +113,11 @@ def convert_tasks_times_to_local(tasks: list) -> list:
         for task in tasks:
             converted_task = convert_task_times_to_local(task)
             converted_tasks.append(converted_task)
-        return converted_tasks
-    except Exception:
-        logger.exception("Failed to convert tasks times")
+    except (ValueError, TypeError) as e:
+        logger.debug("Failed to convert tasks times: %s", e)
         return tasks
+    else:
+        return converted_tasks
 
 
 def get_user_today(user_timezone: str) -> date:
@@ -132,8 +136,10 @@ def get_user_today(user_timezone: str) -> date:
             return datetime.now(tz).date()
         # Fallback to UTC if no timezone info
         return datetime.now(timezone.utc).date()
-    except Exception:
-        logger.exception("Failed to get user today with timezone %s", user_timezone)
+    except pytz.UnknownTimeZoneError as e:
+        logger.debug(
+            "Failed to get user today with timezone %s: %s", user_timezone, e,
+        )
         # Fallback to UTC
         return datetime.now(timezone.utc).date()
 
@@ -159,7 +165,7 @@ def parse_task_date(date_str: str) -> datetime | None:
             date_str = date_str.replace("+0000", "+00:00")
 
         return datetime.fromisoformat(date_str)
-    except Exception as e:
+    except ValueError as e:
         logger.debug("Failed to parse date %s: %s", date_str, e)
         return None
 
@@ -193,17 +199,17 @@ def is_task_due_today(task: dict[str, Any], user_timezone: str) -> bool:
             try:
                 tz = pytz.timezone(user_timezone)
                 task_local_date = task_datetime.astimezone(tz).date()
-            except Exception:
+            except (pytz.UnknownTimeZoneError, ValueError):
                 # If timezone conversion fails, use UTC
                 task_local_date = task_datetime.date()
         else:
             task_local_date = task_datetime.date()
-
-        return task_local_date == user_today
-
-    except Exception as e:
+        is_due_today = task_local_date == user_today
+    except (ValueError, TypeError) as e:
         logger.debug("Failed to check if task is due today: %s", e)
         return False
+    else:
+        return is_due_today
 
 
 def is_task_overdue(task: dict[str, Any], user_timezone: str) -> bool:
@@ -223,7 +229,7 @@ def is_task_overdue(task: dict[str, Any], user_timezone: str) -> bool:
             return False
 
         # Skip completed tasks
-        if task.get("status") == 2:  # 2 means completed
+        if task.get("status") == COMPLETED_STATUS:
             return False
 
         # Parse task due date
@@ -239,14 +245,14 @@ def is_task_overdue(task: dict[str, Any], user_timezone: str) -> bool:
             try:
                 tz = pytz.timezone(user_timezone)
                 task_local_date = task_datetime.astimezone(tz).date()
-            except Exception:
+            except (pytz.UnknownTimeZoneError, ValueError):
                 # If timezone conversion fails, use UTC
                 task_local_date = task_datetime.date()
         else:
             task_local_date = task_datetime.date()
-
-        return task_local_date < user_today
-
-    except Exception as e:
+        is_overdue = task_local_date < user_today
+    except (ValueError, TypeError) as e:
         logger.debug("Failed to check if task is overdue: %s", e)
         return False
+    else:
+        return is_overdue

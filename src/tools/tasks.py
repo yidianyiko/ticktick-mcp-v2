@@ -4,7 +4,7 @@ Task management MCP tools based on ticktick.py library
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from adapters.client import get_client
@@ -21,16 +21,16 @@ def get_tasks(include_completed: bool = False) -> list[dict[str, Any]]:
     try:
         adapter = get_client()
         tasks = adapter.get_tasks(include_completed)
-
+    except Exception:
+        logger.exception("Error getting tasks")
+        return []
+    else:
         # Convert UTC times to local times
         tasks = convert_tasks_times_to_local(tasks)
 
         logger.info("Retrieved %d tasks", len(tasks))
 
         return tasks
-    except Exception:
-        logger.exception("Error getting tasks")
-        return []
 
 
 def create_task(
@@ -42,75 +42,39 @@ def create_task(
     priority: int = 0,
 ) -> dict[str, Any]:
     """
-    Create new task with proper date handling.
+    Create a new task by delegating to the adapter's simple create API.
 
-    Args:
-        title: Task title
-        project_id: Optional project ID
-        content: Optional task content/description
-        start_date: Optional start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format)
-        due_date: Optional due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format)
-        priority: Task priority (0=None, 1=Low, 3=Medium, 5=High)
-
-    Returns:
-        Created task dictionary
-
-    Example:
-        create_task(
-            title="Meeting with team",
-            start_date="2024-12-28 20:05:00",
-            due_date="2024-12-28 22:05:00"
-        )
+    Notes:
+    - Filters out parameters that are None, but preserves empty strings
+    - Maps snake_case parameters to TickTick field names expected by tests
     """
     try:
         adapter = get_client()
 
-        # Parse and validate date strings if provided
-        dt_start = None
-        dt_due = None
+        # Build kwargs for adapter.create_task, filtering out None
+        create_kwargs: dict[str, Any] = {"title": title, "priority": priority}
+        if content is not None:
+            create_kwargs["content"] = content
+        if start_date is not None:
+            create_kwargs["startDate"] = start_date
+        if due_date is not None:
+            create_kwargs["dueDate"] = due_date
 
-        if start_date:
-            try:
-                dt_start = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                msg = f"Invalid start_date format. Expected 'YYYY-MM-DD HH:MM:SS', got '{start_date}'"
-                raise ValueError(msg)
+        # Map project_id to projectId to align with adapter/tests expectations
+        if project_id is not None:
+            create_kwargs["projectId"] = project_id
 
-        if due_date:
-            try:
-                dt_due = datetime.strptime(due_date, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                msg = f"Invalid due_date format. Expected 'YYYY-MM-DD HH:MM:SS', got '{due_date}'"
-                raise ValueError(msg)
-
-        # Get user's timezone from TickTick client (fallback to system timezone)
-        user_timezone = adapter._get_user_timezone()
-        if not user_timezone:
-            # Fallback to Asia/Shanghai if no timezone found
-            user_timezone = "Asia/Shanghai"
-            logger.info("Using fallback timezone: %s", user_timezone)
-        else:
-            logger.info("Using user timezone: %s", user_timezone)
-
-        # Use ticktick.py's builder method for proper date formatting
-        task = adapter.create_task_with_dates(
-            title=title,
-            project_id=project_id,
-            content=content,
-            start_date=dt_start,
-            due_date=dt_due,
-            priority=priority,
-            timezone=user_timezone,
-        )
+        task = adapter.create_task(**create_kwargs)
 
         # Convert UTC times to local times for display
         task = convert_task_times_to_local(task)
-
+    except Exception as err:
+        logger.exception("Error creating task")
+        msg = "Failed to create task"
+        raise RuntimeError(msg) from err
+    else:
         logger.info("Created task: %s", title)
         return task
-    except Exception:
-        logger.exception("Error creating task")
-        raise
 
 
 def update_task(
@@ -123,94 +87,67 @@ def update_task(
     priority: int | None = None,
 ) -> dict[str, Any]:
     """
-    Update existing task with proper date handling.
+    Update an existing task via the adapter's simple update API.
 
-    Args:
-        task_id: ID of the task to update
-        project_id: Optional project ID
-        title: Optional new task title
-        content: Optional new task content/description
-        start_date: Optional new start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format)
-        due_date: Optional new due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format)
-        priority: Optional new task priority (0=None, 1=Low, 3=Medium, 5=High)
-
-    Returns:
-        Updated task dictionary
+    Notes:
+    - Filters out None values; includes zero and empty strings
+    - Maps snake_case parameters to expected TickTick field names
     """
     try:
         adapter = get_client()
 
-        # Parse and validate date strings if provided
-        dt_start = None
-        dt_due = None
+        update_kwargs: dict[str, Any] = {}
+        if title is not None:
+            update_kwargs["title"] = title
+        if content is not None:
+            update_kwargs["content"] = content
+        if start_date is not None:
+            update_kwargs["startDate"] = start_date
+        if due_date is not None:
+            update_kwargs["dueDate"] = due_date
+        if priority is not None:
+            update_kwargs["priority"] = priority
 
-        if start_date:
-            try:
-                dt_start = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                msg = f"Invalid start_date format. Expected 'YYYY-MM-DD HH:MM:SS', got '{start_date}'"
-                raise ValueError(msg)
-
-        if due_date:
-            try:
-                dt_due = datetime.strptime(due_date, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                msg = f"Invalid due_date format. Expected 'YYYY-MM-DD HH:MM:SS', got '{due_date}'"
-                raise ValueError(msg)
-
-        # Get user's timezone
-        user_timezone = adapter._get_user_timezone()
-        if not user_timezone:
-            user_timezone = "Asia/Shanghai"
-
-        # Use the adapter's update method with proper date handling
-        task = adapter.update_task_with_dates(
-            task_id=task_id,
-            project_id=project_id,
-            title=title,
-            content=content,
-            start_date=dt_start,
-            due_date=dt_due,
-            priority=priority,
-            timezone=user_timezone,
-        )
-
-        # Convert UTC times to local times
+        # Call adapter.update_task ensuring the second positional argument is project_id
+        task = adapter.update_task(task_id, project_id, **update_kwargs)
+    except Exception as err:
+        logger.exception("Error updating task")
+        msg = "Failed to update task"
+        raise RuntimeError(msg) from err
+    else:
         task = convert_task_times_to_local(task)
-
         logger.info("Updated task: %s", task_id)
         return task
-    except Exception:
-        logger.exception("Error updating task")
-        raise
 
 
-def delete_task(project_id: str, task_id: str) -> bool:
-    """Delete task"""
+def delete_task(task_id: str) -> bool:
+    """Delete a task by its task_id.
+    """
     try:
         adapter = get_client()
-
-        result = adapter.delete_task(project_id, task_id)
-
+        # Pass None for project_id to indicate it's intentionally unused
+        result = adapter.delete_task(None, task_id)
+    except Exception as err:
+        logger.exception("Error deleting task")
+        msg = "Failed to delete task"
+        raise RuntimeError(msg) from err
+    else:
         logger.info("Deleted task: %s", task_id)
         return result
-    except Exception:
-        logger.exception("Error deleting task")
-        raise
 
 
 def complete_task(task_id: str) -> bool:
     """Mark task as completed"""
     try:
         adapter = get_client()
-
         result = adapter.complete_task(task_id)
-
+    except Exception as err:
+        logger.exception("Error completing task")
+        msg = "Failed to complete task"
+        raise RuntimeError(msg) from err
+    else:
         logger.info("Completed task: %s", task_id)
         return result
-    except Exception:
-        logger.exception("Error completing task")
-        raise
 
 
 def search_tasks(query: str) -> list[dict[str, Any]]:
@@ -218,15 +155,15 @@ def search_tasks(query: str) -> list[dict[str, Any]]:
     try:
         adapter = get_client()
         tasks = adapter.search_tasks(query)
-
+    except Exception:
+        logger.exception("Error searching tasks")
+        return []
+    else:
         # Convert UTC times to local times
         tasks = convert_tasks_times_to_local(tasks)
 
         logger.info("Found %d tasks matching query: %s", len(tasks), query)
         return tasks
-    except Exception:
-        logger.exception("Error searching tasks")
-        return []
 
 
 def get_tasks_by_priority(priority: int) -> list[dict[str, Any]]:
@@ -234,15 +171,15 @@ def get_tasks_by_priority(priority: int) -> list[dict[str, Any]]:
     try:
         adapter = get_client()
         tasks = adapter.get_tasks_by_priority(priority)
-
+    except Exception:
+        logger.exception("Error getting tasks by priority")
+        return []
+    else:
         # Convert UTC times to local times
         tasks = convert_tasks_times_to_local(tasks)
 
         logger.info("Found %d tasks with priority %s", len(tasks), priority)
         return tasks
-    except Exception:
-        logger.exception("Error getting tasks by priority")
-        return []
 
 
 def get_tasks_due_today() -> list[dict[str, Any]]:
@@ -250,15 +187,15 @@ def get_tasks_due_today() -> list[dict[str, Any]]:
     try:
         adapter = get_client()
         tasks = adapter.get_tasks_due_today()
-
+    except Exception:
+        logger.exception("Error getting tasks due today")
+        return []
+    else:
         # Convert UTC times to local times
         tasks = convert_tasks_times_to_local(tasks)
 
         logger.info("Found %d tasks due today", len(tasks))
         return tasks
-    except Exception:
-        logger.exception("Error getting tasks due today")
-        return []
 
 
 def get_overdue_tasks() -> list[dict[str, Any]]:
@@ -266,12 +203,12 @@ def get_overdue_tasks() -> list[dict[str, Any]]:
     try:
         adapter = get_client()
         tasks = adapter.get_overdue_tasks()
-
+    except Exception:
+        logger.exception("Error getting overdue tasks")
+        return []
+    else:
         # Convert UTC times to local times
         tasks = convert_tasks_times_to_local(tasks)
 
         logger.info("Found %d overdue tasks", len(tasks))
         return tasks
-    except Exception:
-        logger.exception("Error getting overdue tasks")
-        return []

@@ -6,9 +6,12 @@ Real-world end-to-end scenario tests
 import asyncio
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import pytest
+from mcp.client.session import ClientSession
+from mcp.client.stdio import StdioServerParameters, stdio_client
 
 # Add src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -22,8 +25,6 @@ class TestRealWorldScenarios:
     async def test_daily_task_management_workflow(self):
         """Test a typical daily task management workflow"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -31,8 +32,7 @@ class TestRealWorldScenarios:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # 1. Start of day - check authentication
                     auth_status = await session.call_tool("auth_status", {})
@@ -101,8 +101,6 @@ class TestRealWorldScenarios:
                     }
 
         except Exception:
-            import traceback
-
             traceback.print_exc()
             return None
 
@@ -110,8 +108,6 @@ class TestRealWorldScenarios:
     async def test_project_focused_workflow(self):
         """Test project-focused workflow"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -119,8 +115,7 @@ class TestRealWorldScenarios:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # 1. Get all projects
                     projects = await session.call_tool("get_projects", {})
@@ -184,8 +179,6 @@ class TestRealWorldScenarios:
     async def test_task_discovery_workflow(self):
         """Test task discovery and organization workflow"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -193,8 +186,7 @@ class TestRealWorldScenarios:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # 1. Discover all tasks by different criteria
 
@@ -294,8 +286,6 @@ class TestRealWorldScenarios:
                     return discovery_results
 
         except Exception:
-            import traceback
-
             traceback.print_exc()
             return None
 
@@ -303,8 +293,6 @@ class TestRealWorldScenarios:
     async def test_productivity_analysis_workflow(self):
         """Test productivity analysis workflow"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -312,8 +300,7 @@ class TestRealWorldScenarios:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # 1. Gather comprehensive data
 
@@ -474,8 +461,6 @@ class TestRealWorldScenarios:
                     }
 
         except Exception:
-            import traceback
-
             traceback.print_exc()
             return None
 
@@ -489,8 +474,7 @@ class TestLongRunningScenarios:
     async def test_extended_session_workflow(self):
         """Test extended session with multiple workflows"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
+
 
             server_params = StdioServerParameters(
                 command="python",

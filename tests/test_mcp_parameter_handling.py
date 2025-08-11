@@ -321,7 +321,7 @@ class TestMCPParameterHandling:
         """Test delete_task boolean return value handling"""
         mock_impl.return_value = True
 
-        result = await delete_task("project_id", "task_id")
+        result = await delete_task("task_id")
 
         assert result == "Task deletion successful"
 
@@ -332,7 +332,7 @@ class TestMCPParameterHandling:
         """Test delete_task return False handling"""
         mock_impl.return_value = False
 
-        result = await delete_task("project_id", "task_id")
+        result = await delete_task("task_id")
 
         assert result == "Task deletion failed"
 

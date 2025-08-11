@@ -1448,7 +1448,7 @@ wheels = [
 
 [[package]]
 name = "ticktick-mcp-v2"
-version = "1.0.2"
+version = "1.0.4"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

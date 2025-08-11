@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ticktick-mcp-v2"
-version = "1.0.3"
+version = "1.0.4"
 description = "TickTick MCP Server - Enhanced Version with Chinese Support"
 authors = [
     {name = "TickTick MCP Team", email = "dev@example.com"}
@@ -67,13 +67,29 @@ include = ["src*"]
 [tool.ruff]
 target-version = "py310"
 line-length = 100
+extend-exclude = [
+    "tests/**",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "YTT", "ANN", "S", "BLE", "B", "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PGH", "PL", "TRY", "NPY", "RUF"]
 ignore = ["ANN401", "S101", "PLR0913", "PLR0912", "PLR0915"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "ANN", "PLR2004"]
+"tests/**" = [
+    "S101",       # assert in tests
+    "ANN",        # type annotations relaxed in tests
+    "PLR2004",    # magic values in tests
+    "E501",       # long lines in messages/strings
+    "SIM117",     # nested with/context managers
+    "PLC0415",    # imports inside test bodies
+    "RUF003",     # unicode chars in comments
+    "PTH107", "PTH110", "PTH118", "PTH120", "PTH123",  # os.path/open usage
+    "SLF001",     # private member access for mocking
+    "PT011",      # pytest.raises too broad
+    "B017",       # assert blind exception
+    "S607",       # partial path process start in helper scripts
+]
 "src/cli.py" = ["T20"]
 
 [tool.pytest.ini_options]

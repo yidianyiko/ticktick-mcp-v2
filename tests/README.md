@@ -87,8 +87,6 @@ pytest tests/ -m "e2e"
 pytest tests/ -m "auth"
 pytest tests/ -m "mcp"
 
-# Skip slow tests
-pytest tests/ -m "not slow"
 
 # Generate coverage report
 pytest tests/ --cov=src --cov-report=html

@@ -4,6 +4,7 @@ Performance tests for TickTick MCP server
 """
 
 import asyncio
+import gc
 import statistics
 import sys
 import time
@@ -11,9 +12,17 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+from mcp.client.session import ClientSession
+from mcp.client.stdio import StdioServerParameters, stdio_client
+
+try:
+    import psutil
+except ImportError:
+    psutil = None  # type: ignore[assignment]
 
 # Add src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+from tools import projects, tasks
 
 
 @pytest.mark.performance
@@ -24,8 +33,6 @@ class TestPerformanceBenchmarks:
     async def test_tool_call_latency(self):
         """Test latency of individual tool calls"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -33,8 +40,7 @@ class TestPerformanceBenchmarks:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # Test different operations multiple times
                     operations = [
@@ -98,8 +104,6 @@ class TestPerformanceBenchmarks:
     async def test_throughput_benchmark(self):
         """Test throughput under load"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -107,8 +111,7 @@ class TestPerformanceBenchmarks:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # Test concurrent requests
                     concurrent_levels = [1, 2, 5, 10]
@@ -152,8 +155,7 @@ class TestPerformanceBenchmarks:
     def test_unit_function_performance(self):
         """Test performance of individual unit functions"""
 
-        # Import functions to test
-        from tools import projects, tasks
+        # Import functions to test (moved to top-level)
 
         # Mock the adapter to avoid real API calls
         mock_adapter = Mock()
@@ -164,10 +166,7 @@ class TestPerformanceBenchmarks:
             {"id": f"proj{i}", "name": f"Project {i}"} for i in range(10)
         ]
 
-        with patch("tools.tasks.get_client", return_value=mock_adapter):
-            with patch(
-                "tools.tasks.convert_tasks_times_to_local", side_effect=lambda x: x,
-            ):
+        with patch("tools.tasks.get_client", return_value=mock_adapter), patch("tools.tasks.convert_tasks_times_to_local", side_effect=lambda x: x):
                 # Benchmark get_tasks
                 start_time = time.perf_counter()
                 for _ in range(100):
@@ -199,14 +198,8 @@ class TestPerformanceBenchmarks:
 
     def test_memory_efficiency(self):
         """Test memory efficiency of operations"""
-        try:
-            import gc
-
-            import psutil
-        except ImportError:
+        if psutil is None:
             return True
-
-        from tools import projects, tasks
 
         # Get initial memory usage
         process = psutil.Process()
@@ -225,10 +218,7 @@ class TestPerformanceBenchmarks:
         mock_adapter.get_tasks.return_value = large_task_list
         mock_adapter.get_projects.return_value = large_project_list
 
-        with patch("tools.tasks.get_client", return_value=mock_adapter):
-            with patch(
-                "tools.tasks.convert_tasks_times_to_local", side_effect=lambda x: x,
-            ):
+        with patch("tools.tasks.get_client", return_value=mock_adapter), patch("tools.tasks.convert_tasks_times_to_local", side_effect=lambda x: x):
                 # Process large amounts of data
                 for _ in range(10):
                     result = tasks.get_tasks()
@@ -264,8 +254,6 @@ class TestStressTests:
     async def test_high_load_stress(self):
         """Test system under high load"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -273,8 +261,7 @@ class TestStressTests:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
 
                     # Create a large number of concurrent requests
                     num_requests = 50
@@ -322,14 +309,8 @@ class TestStressTests:
 
     def test_memory_stress(self):
         """Test memory usage under stress"""
-        try:
-            import gc
-
-            import psutil
-        except ImportError:
+        if psutil is None:
             return True
-
-        from tools import tasks
 
         # Get initial memory
         process = psutil.Process()
@@ -347,10 +328,11 @@ class TestStressTests:
 
         max_memory = initial_memory
 
-        with patch("tools.tasks.get_client", return_value=mock_adapter):
-            with patch(
-                "tools.tasks.convert_tasks_times_to_local", side_effect=lambda x: x,
-            ):
+        with patch(
+            "tools.tasks.get_client", return_value=mock_adapter,
+        ), patch(
+            "tools.tasks.convert_tasks_times_to_local", side_effect=lambda x: x,
+        ):
                 # Process huge datasets repeatedly
                 for i in range(20):
                     result = tasks.get_tasks()
@@ -392,7 +374,6 @@ class TestPerformanceRegression:
     def test_performance_baseline(self):
         """Establish performance baseline for regression testing"""
 
-        from tools import projects, tasks
 
         # Create consistent mock data
         mock_tasks = [{"id": f"task{i}", "title": f"Task {i}"} for i in range(100)]
@@ -405,10 +386,11 @@ class TestPerformanceRegression:
         baselines = {}
 
         # Test get_tasks performance
-        with patch("tools.tasks.get_client", return_value=mock_adapter):
-            with patch(
-                "tools.tasks.convert_tasks_times_to_local", side_effect=lambda x: x,
-            ):
+        with patch(
+            "tools.tasks.get_client", return_value=mock_adapter,
+        ), patch(
+            "tools.tasks.convert_tasks_times_to_local", side_effect=lambda x: x,
+        ):
                 start_time = time.perf_counter()
                 for _ in range(100):
                     tasks.get_tasks()

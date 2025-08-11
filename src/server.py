@@ -73,6 +73,56 @@ server = FastMCP("ticktick")
 auth_tools = AuthTools()
 
 
+# Accepted human-friendly color names mapped to TickTick hex palette.
+# This is used to make the API more forgiving for clients.
+COLOR_NAME_TO_HEX: dict[str, str] = {
+    "red": "#FF6161",
+    "pink": "#BE3B83",
+    "teal": "#7CEDEB",
+    "green": "#35D870",
+    "yellow": "#E6EA49",
+    "purple": "#C77B9B",
+    "blue": "#45B7D1",
+    "mint": "#96CEB4",
+}
+
+
+def _is_hex_color(value: str) -> bool:
+    """Return True if value is a #RRGGBB hex color string."""
+    if not isinstance(value, str):
+        return False
+    if len(value) != 7 or not value.startswith("#"):
+        return False
+    hex_part = value[1:]
+    try:
+        int(hex_part, 16)
+        return True
+    except ValueError:
+        return False
+
+
+def _normalize_color(color: str | None) -> str | None:
+    """Normalize a user-provided color to a TickTick-compatible hex or None.
+
+    - Accepts #RRGGBB directly
+    - Accepts common color names (mapped above)
+    - Returns None if the input is invalid or empty
+    """
+    if not color:
+        return None
+    lowered = color.strip().lower()
+    # Direct hex
+    if _is_hex_color(lowered):
+        return lowered
+    # Name mapping
+    mapped = COLOR_NAME_TO_HEX.get(lowered)
+    if mapped:
+        return mapped
+    # Unknown value: warn and default to None (let TickTick apply default)
+    logger.warning("Unrecognized project color '%s'. Defaulting to TickTick default color.", color)
+    return None
+
+
 # Global client check (similar to reference project)
 def ensure_authenticated() -> bool:
     """Ensure client is authenticated, similar to reference project's initialize_client."""
@@ -265,12 +315,22 @@ async def get_project(project_id: str) -> str:
 async def create_project(
     name: str, color: str | None = None, view_mode: str = "list",
 ) -> str:
-    """Create a new project."""
+    """Create a new project.
+
+    Args:
+        name: Project name
+        color: Optional project color.
+            Accepts either a hex color (e.g., "#FF6161") or one of:
+            red, pink, teal, green, yellow, purple, blue, mint.
+            Unknown values are ignored and TickTick's default color is used.
+        view_mode: View mode (not enforced by TickTick API; added to response for convenience)
+    """
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
 
     try:
-        project = create_project_impl(name, color, view_mode)
+        normalized_color = _normalize_color(color)
+        project = create_project_impl(name, normalized_color, view_mode)
         return format_result(project)
     except Exception as e:
         logger.exception("Error in create_project")
@@ -342,10 +402,12 @@ async def create_task(
         title: Task title/name
         project_id: Optional project ID to place the task in
         content: Optional task description/content
-        start_date: Optional start date in format "YYYY-MM-DD HH:MM:SS"
-            (24-hour format, local timezone)
-        due_date: Optional due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
-        priority: Task priority as string ("0"=None, "1"=Low, "3"=Medium, "5"=High)
+        start_date: Optional start date. Format: "YYYY-MM-DD HH:MM:SS"
+            (24-hour, local timezone). Example: "2025-01-01 09:00:00"
+        due_date: Optional due date. Format: "YYYY-MM-DD HH:MM:SS"
+            (24-hour, local timezone). Example: "2025-01-01 18:00:00"
+        priority: Task priority as string
+            ("0"=None, "1"=Low, "3"=Medium, "5"=High)
 
     Examples:
         - Basic task: create_task(title="Buy groceries")
@@ -397,13 +459,20 @@ async def update_task(
         project_id: Optional new project ID
         title: Optional new task title/name
         content: Optional new task description/content
-        start_date: Optional new start date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
-        due_date: Optional new due date in format "YYYY-MM-DD HH:MM:SS" (24-hour format, local timezone)
-        priority: Optional new task priority as string ("0"=None, "1"=Low, "3"=Medium, "5"=High)
+        start_date: Optional new start date. Format: "YYYY-MM-DD HH:MM:SS"
+            (24-hour, local timezone). Example: "2025-01-02 09:00:00"
+        due_date: Optional new due date. Format: "YYYY-MM-DD HH:MM:SS"
+            (24-hour, local timezone). Example: "2025-01-02 18:00:00"
+        priority: Optional new task priority as string
+            ("0"=None, "1"=Low, "3"=Medium, "5"=High)
 
     Examples:
         - Change title: update_task(task_id="12345", title="New task name")
-        - Update dates: update_task(task_id="12345", start_date="2024-12-29 09:00:00", due_date="2024-12-29 17:00:00")
+        - Update dates: update_task(
+            task_id="12345",
+            start_date="2024-12-29 09:00:00",
+            due_date="2024-12-29 17:00:00",
+        )
         - Change priority: update_task(task_id="12345", priority="5")
     """
     if not ensure_authenticated():
@@ -437,14 +506,17 @@ async def update_task(
 
 
 @server.tool()
-async def delete_task(project_id: str, task_id: str) -> str:
-    """Delete a task."""
+async def delete_task(task_id: str) -> str:
+    """Delete a task by its task_id.
+
+    Args:
+        task_id: ID of the task to delete
+    """
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
 
     try:
-        result = delete_task_impl(project_id, task_id)
-        # Handle boolean result from delete operation
+        result = delete_task_impl(task_id)
         if isinstance(result, bool):
             return f"Task deletion {'successful' if result else 'failed'}"
         return format_result(result)

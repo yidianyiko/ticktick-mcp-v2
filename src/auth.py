@@ -6,14 +6,14 @@ Username/password authentication based on ticktick.py library
 
 import json
 import logging
-import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from dotenv import set_key
 
 # Add ticktick.py submodule to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "submodule", "ticktick-py"))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "submodule" / "ticktick-py"))
 
 try:
     from ticktick.api import TickTickClient
@@ -37,10 +37,11 @@ class TickTickAuth:
 
     def authenticate(self, username: str, password: str) -> bool:
         """Authenticate using username and password"""
-        try:
-            if TickTickClient is None:
-                raise ImportError("ticktick.py library not available")
+        if TickTickClient is None:
+            msg = "ticktick.py library not available"
+            raise ImportError(msg)
 
+        try:
             # Try to login
             client = TickTickClient(username, password)
 
@@ -49,13 +50,12 @@ class TickTickAuth:
 
             # Save credentials
             self._save_credentials(username, password)
-
-            logger.info("Successfully authenticated as %s", username)
-            return True
-
         except Exception:
             logger.exception("Authentication failed")
             return False
+        else:
+            logger.info("Successfully authenticated as %s", username)
+            return True
 
     def _save_credentials(self, username: str, password: str) -> None:
         """Save credentials to local file"""
@@ -65,7 +65,7 @@ class TickTickAuth:
             "authenticated": True,
         }
 
-        with open(self.credentials_file, "w") as f:
+        with self.credentials_file.open("w") as f:
             json.dump(credentials, f, indent=2)
 
         # Also save to .env file for compatibility
@@ -73,40 +73,40 @@ class TickTickAuth:
         set_key(self.env_file, "TICKTICK_PASSWORD", password)
         set_key(self.env_file, "TICKTICK_AUTHENTICATED", "true")
 
-    def get_client(self):
+    def get_client(self) -> Any:
         """Get authenticated TickTick client"""
+        # Validate prerequisites outside of try to avoid catching intentional errors
+        if not self.is_authenticated():
+            msg = "Not authenticated. Please login first."
+            raise PermissionError(msg)
+
+        if TickTickClient is None:
+            msg = "ticktick.py library not available"
+            raise ImportError(msg)
+
+        # Get saved credentials
+        credentials = self._load_credentials()
+        if not credentials:
+            msg = "No saved credentials found."
+            raise FileNotFoundError(msg)
+
         try:
-            # Check if there are saved credentials
-            if not self.is_authenticated():
-                msg = "Not authenticated. Please login first."
-                raise Exception(msg)
-
-            if TickTickClient is None:
-                raise ImportError("ticktick.py library not available")
-
-            # Get saved credentials
-            credentials = self._load_credentials()
-            if not credentials:
-                msg = "No saved credentials found."
-                raise Exception(msg)
-
             # Create client
             client = TickTickClient(credentials["username"], credentials["password"])
 
             # Sync data
             client.sync()
-
-            return client
-
         except Exception:
             logger.exception("Failed to get client")
             raise
+        else:
+            return client
 
     def _load_credentials(self) -> dict[str, str] | None:
         """Load saved credentials"""
         try:
             if self.credentials_file.exists():
-                with open(self.credentials_file) as f:
+                with self.credentials_file.open() as f:
                     return json.load(f)
         except Exception:
             logger.exception("Failed to load credentials")
@@ -132,18 +132,17 @@ class TickTickAuth:
             set_key(self.env_file, "TICKTICK_USERNAME", "")
             set_key(self.env_file, "TICKTICK_PASSWORD", "")
             set_key(self.env_file, "TICKTICK_AUTHENTICATED", "false")
-
-            logger.info("Successfully logged out")
-            return True
-
         except Exception:
             logger.exception("Logout failed")
             return False
+        else:
+            logger.info("Successfully logged out")
+            return True
 
     def get_username(self) -> str | None:
         """Get current username"""
         try:
             credentials = self._load_credentials()
             return credentials.get("username") if credentials else None
-        except Exception:
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
             return None

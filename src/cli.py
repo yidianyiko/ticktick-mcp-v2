@@ -53,7 +53,7 @@ def auth(username: str, password: str) -> None:
             )
             sys.exit(1)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CLI surfaces any error message to user
         click.echo(f"❌ Authentication failed: {e}")
         sys.exit(1)
 
@@ -61,7 +61,7 @@ def auth(username: str, password: str) -> None:
 @cli.command()
 @click.option("--host", default="localhost", help="Host for the callback server")
 @click.option("--port", default=8000, help="Port for the callback server")
-def run(host: str, port: int) -> None:
+def run(host: str, port: int) -> None:  # noqa: ARG001 - reserved for future use
     """Run TickTick MCP server"""
     try:
         # Check authentication status
@@ -83,7 +83,7 @@ def run(host: str, port: int) -> None:
             asyncio.run(server_main())
         except KeyboardInterrupt:
             click.echo("\n🛑 Server stopped", err=True)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - Report any startup error to CLI
             click.echo(f"❌ Server startup failed: {e}", err=True)
             sys.exit(1)
 
@@ -107,11 +107,11 @@ def test() -> None:
             username = auth_handler.get_username()
             click.echo(f"✅ Configuration correct! Authenticated as: {username}")
             click.echo("✅ Client connection successful")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - present full error in CLI
             click.echo(f"❌ Client connection failed: {e}")
             sys.exit(1)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - present full error in CLI
         click.echo(f"❌ Test failed: {e}")
         sys.exit(1)
 
@@ -128,7 +128,7 @@ def logout() -> None:
             click.echo("❌ Logout failed")
             sys.exit(1)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - present full error in CLI
         click.echo(f"❌ Logout failed: {e}")
         sys.exit(1)
 

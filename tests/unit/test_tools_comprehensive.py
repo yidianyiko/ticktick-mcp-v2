@@ -132,10 +132,10 @@ class TestTaskToolsComprehensive:
         mock_adapter.delete_task.return_value = True
         mock_get_client.return_value = mock_adapter
 
-        result = tasks.delete_task("proj1", "task1")
+        result = tasks.delete_task("task1")
 
         assert result is True
-        mock_adapter.delete_task.assert_called_once_with("proj1", "task1")
+        mock_adapter.delete_task.assert_called_once_with(None, "task1")
 
     @patch("tools.tasks.get_client")
     def test_delete_task_exception(self, mock_get_client):
@@ -143,7 +143,7 @@ class TestTaskToolsComprehensive:
         mock_get_client.side_effect = Exception("Test error")
 
         with pytest.raises(Exception):
-            tasks.delete_task("proj1", "task1")
+            tasks.delete_task("task1")
 
     @patch("tools.tasks.get_client")
     def test_complete_task_success(self, mock_get_client):

@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-# Add src directory to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Ensure project root is on Python path so `src` package can be imported
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import modules needed for tests
 from src.auth import TickTickAuth

@@ -7,6 +7,8 @@ import asyncio
 from pathlib import Path
 
 import pytest
+from mcp.client.session import ClientSession
+from mcp.client.stdio import StdioServerParameters, stdio_client
 
 
 @pytest.mark.integration
@@ -18,8 +20,6 @@ class TestMCPServerModern:
     async def test_server_connection(self):
         """Test server connection and initialization"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             # Create server parameters
             server_params = StdioServerParameters(
@@ -29,8 +29,7 @@ class TestMCPServerModern:
             )
 
             # Test connection with proper initialization wait
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
                     # Wait for server to be ready
                     await asyncio.sleep(1)
 
@@ -46,8 +45,6 @@ class TestMCPServerModern:
     async def test_tools_listing(self):
         """Test tools listing functionality"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -55,8 +52,7 @@ class TestMCPServerModern:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
                     # Wait for server initialization
                     await asyncio.sleep(2)
 
@@ -85,8 +81,6 @@ class TestMCPServerModern:
     async def test_auth_status_tool(self):
         """Test auth status tool"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -94,8 +88,7 @@ class TestMCPServerModern:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
                     # Wait for server initialization
                     await asyncio.sleep(2)
 
@@ -115,8 +108,6 @@ class TestMCPServerModern:
     async def test_get_projects_tool(self):
         """Test get projects tool"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -124,8 +115,7 @@ class TestMCPServerModern:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
                     # Wait for server initialization
                     await asyncio.sleep(2)
 
@@ -145,8 +135,6 @@ class TestMCPServerModern:
     async def test_get_tasks_tool(self):
         """Test get tasks tool"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
 
             server_params = StdioServerParameters(
                 command="python",
@@ -154,8 +142,7 @@ class TestMCPServerModern:
                 cwd=Path(__file__).parent.parent.parent,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+            async with stdio_client(server_params) as (read_stream, write_stream), ClientSession(read_stream, write_stream) as session:
                     # Wait for server initialization
                     await asyncio.sleep(2)
 
@@ -183,8 +170,7 @@ class TestMCPServerErrorHandling:
     async def test_invalid_tool_call(self):
         """Test handling of invalid tool calls"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
+
 
             server_params = StdioServerParameters(
                 command="python",
@@ -211,8 +197,7 @@ class TestMCPServerErrorHandling:
     async def test_server_stability(self):
         """Test server stability with multiple requests"""
         try:
-            from mcp.client.session import ClientSession
-            from mcp.client.stdio import StdioServerParameters, stdio_client
+
 
             server_params = StdioServerParameters(
                 command="python",
