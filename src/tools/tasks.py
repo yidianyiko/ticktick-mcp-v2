@@ -42,29 +42,61 @@ def create_task(
     priority: int = 0,
 ) -> dict[str, Any]:
     """
-    Create a new task by delegating to the adapter's simple create API.
+    Create a new task by delegating to the adapter's appropriate create API.
 
     Notes:
+    - Uses date-aware method when time parameters are provided
     - Filters out parameters that are None, but preserves empty strings
     - Maps snake_case parameters to TickTick field names expected by tests
     """
     try:
         adapter = get_client()
 
-        # Build kwargs for adapter.create_task, filtering out None
-        create_kwargs: dict[str, Any] = {"title": title, "priority": priority}
-        if content is not None:
-            create_kwargs["content"] = content
-        if start_date is not None:
-            create_kwargs["startDate"] = start_date
-        if due_date is not None:
-            create_kwargs["dueDate"] = due_date
+        # If we have time parameters, use the date-aware method
+        if start_date is not None or due_date is not None:
+            from datetime import datetime
+            
+            # Parse start_date and due_date to datetime objects
+            start_datetime = None
+            due_datetime = None
+            
+            if start_date is not None:
+                try:
+                    start_datetime = datetime.fromisoformat(start_date.replace(' ', 'T'))
+                except ValueError:
+                    logger.warning("Invalid start_date format: %s, expected 'YYYY-MM-DD HH:MM:SS'", start_date)
+                    
+            if due_date is not None:
+                try:
+                    due_datetime = datetime.fromisoformat(due_date.replace(' ', 'T'))
+                except ValueError:
+                    logger.warning("Invalid due_date format: %s, expected 'YYYY-MM-DD HH:MM:SS'", due_date)
+            
+            # Get user's timezone from TickTick client
+            user_timezone = adapter.get_user_timezone()
+            if not user_timezone:
+                user_timezone = "Asia/Shanghai"  # Fallback timezone
+                logger.warning("Could not get user timezone, using fallback: %s", user_timezone)
+            
+            # Use the date-aware method
+            task = adapter.create_task_with_dates(
+                title=title,
+                project_id=project_id,
+                content=content,
+                start_date=start_datetime,
+                due_date=due_datetime,
+                priority=priority,
+                timezone=user_timezone
+            )
+        else:
+            # Use simple method for tasks without dates
+            create_kwargs: dict[str, Any] = {"title": title, "priority": priority}
+            if content is not None:
+                create_kwargs["content"] = content
+            if project_id is not None:
+                create_kwargs["projectId"] = project_id
 
-        # Map project_id to projectId to align with adapter/tests expectations
-        if project_id is not None:
-            create_kwargs["projectId"] = project_id
-
-        task = adapter.create_task(**create_kwargs)
+            task = adapter.create_task(**create_kwargs)
 
         # Convert UTC times to local times for display
         task = convert_task_times_to_local(task)
@@ -87,29 +119,65 @@ def update_task(
     priority: int | None = None,
 ) -> dict[str, Any]:
     """
-    Update an existing task via the adapter's simple update API.
+    Update an existing task via the adapter's appropriate update API.
 
     Notes:
+    - Uses date-aware method when time parameters are provided
     - Filters out None values; includes zero and empty strings
     - Maps snake_case parameters to expected TickTick field names
     """
     try:
         adapter = get_client()
 
-        update_kwargs: dict[str, Any] = {}
-        if title is not None:
-            update_kwargs["title"] = title
-        if content is not None:
-            update_kwargs["content"] = content
-        if start_date is not None:
-            update_kwargs["startDate"] = start_date
-        if due_date is not None:
-            update_kwargs["dueDate"] = due_date
-        if priority is not None:
-            update_kwargs["priority"] = priority
+        # If we have time parameters, use the date-aware method
+        if start_date is not None or due_date is not None:
+            from datetime import datetime
+            
+            # Parse start_date and due_date to datetime objects
+            start_datetime = None
+            due_datetime = None
+            
+            if start_date is not None:
+                try:
+                    start_datetime = datetime.fromisoformat(start_date.replace(' ', 'T'))
+                except ValueError:
+                    logger.warning("Invalid start_date format: %s, expected 'YYYY-MM-DD HH:MM:SS'", start_date)
+                    
+            if due_date is not None:
+                try:
+                    due_datetime = datetime.fromisoformat(due_date.replace(' ', 'T'))
+                except ValueError:
+                    logger.warning("Invalid due_date format: %s, expected 'YYYY-MM-DD HH:MM:SS'", due_date)
+            
+            # Get user's timezone from TickTick client
+            user_timezone = adapter.get_user_timezone()
+            if not user_timezone:
+                user_timezone = "Asia/Shanghai"  # Fallback timezone
+                logger.warning("Could not get user timezone, using fallback: %s", user_timezone)
+            
+            # Use the date-aware method
+            task = adapter.update_task_with_dates(
+                task_id=task_id,
+                project_id=project_id,
+                title=title,
+                content=content,
+                start_date=start_datetime,
+                due_date=due_datetime,
+                priority=priority,
+                timezone=user_timezone
+            )
+        else:
+            # Use simple method for updates without dates
+            update_kwargs: dict[str, Any] = {}
+            if title is not None:
+                update_kwargs["title"] = title
+            if content is not None:
+                update_kwargs["content"] = content
+            if priority is not None:
+                update_kwargs["priority"] = priority
 
-        # Call adapter.update_task ensuring the second positional argument is project_id
-        task = adapter.update_task(task_id, project_id, **update_kwargs)
+            # Call adapter.update_task ensuring the second positional argument is project_id
+            task = adapter.update_task(task_id, project_id, **update_kwargs)
     except Exception as err:
         logger.exception("Error updating task")
         msg = "Failed to update task"
