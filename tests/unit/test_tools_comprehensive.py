@@ -5,6 +5,7 @@ Comprehensive tools module unit tests
 
 import os
 import sys
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
@@ -322,7 +323,7 @@ class TestProjectToolsComprehensive:
         result = projects.create_project("New Project", color="blue")
 
         assert result == mock_project
-        mock_client.project.create.assert_called_once_with("New Project", "blue")
+        mock_client.project.create.assert_called_once_with("New Project", "#45B7D1")
 
     @patch("tools.projects.get_client")
     def test_create_project_exception(self, mock_get_client):
@@ -396,7 +397,7 @@ class TestToolsParameterValidation:
         with patch("tools.tasks.get_client") as mock_get_client:
             mock_adapter = Mock()
             mock_task = {"id": "task1"}
-            mock_adapter.create_task.return_value = mock_task
+            mock_adapter.create_task_with_dates.return_value = mock_task
             mock_get_client.return_value = mock_adapter
 
             with patch(
@@ -413,12 +414,16 @@ class TestToolsParameterValidation:
                 )
 
                 # Verify the call includes all parameters
-                call_args = mock_adapter.create_task.call_args[1]
+                mock_adapter.create_task_with_dates.assert_called_once()
+                call_args = mock_adapter.create_task_with_dates.call_args[1]
+
                 assert call_args["title"] == "Test Task"
-                assert call_args["projectId"] == "proj1"
+                assert call_args["project_id"] == "proj1"
                 assert call_args["content"] == "Test content"
-                assert call_args["startDate"] == "2024-01-01"
-                assert call_args["dueDate"] == "2024-01-02"
+                assert call_args["start_date"] == datetime.fromisoformat(
+                    "2024-01-01",
+                )
+                assert call_args["due_date"] == datetime.fromisoformat("2024-01-02")
                 assert call_args["priority"] == 3
 
     def test_task_update_parameter_handling(self):

@@ -182,7 +182,7 @@ class TestProjectManagementTools:
     async def test_create_project(self):
         """Test creating a new project"""
         project_name = f"Test Project {asyncio.get_event_loop().time()}"
-        result = await create_project(project_name, color="blue", view_mode="list")
+        result = await create_project(project_name, color="blue")
         assert isinstance(result, str)
 
     @pytest.mark.asyncio
@@ -523,7 +523,8 @@ class TestErrorHandling:
             )
 
     @pytest.mark.asyncio
-    async def test_invalid_parameter_handling(self):
+    @patch("server.ensure_authenticated", return_value=True)
+    async def test_invalid_parameter_handling(self, mock_auth):
         """Test handling of invalid parameters"""
         # Test invalid priority in create_task
         result = await create_task("Test", priority="invalid")
