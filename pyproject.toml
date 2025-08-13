@@ -46,7 +46,8 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "build>=0.10.0",
-    "twine>=4.0.0"
+    "twine>=4.0.0",
+    "black>=25.1.0"
 ]
 
 [project.scripts]
@@ -114,11 +115,4 @@ markers = [
     "auth: Auth related test marker",
     "mcp: MCP related test marker",
     "asyncio: Async test marker"
-]
-
-[dependency-groups]
-dev = [
-    "black>=25.1.0",
-    "build",
-    "twine",
 ]
