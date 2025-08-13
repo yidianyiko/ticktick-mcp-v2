@@ -33,6 +33,7 @@ nest-asyncio>=1.5.0
 # Development & Testing
 pytest>=7.4.0
 pytest-cov>=4.1.0
+pytest-asyncio>=1.1.0
 
 # Code quality
 ruff>=0.1.0 

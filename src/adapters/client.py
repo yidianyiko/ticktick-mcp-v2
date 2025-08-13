@@ -372,6 +372,8 @@ class TickTickAdapter:
         - Raise exceptions on failures instead of swallowing.
         """
         client = self._ensure_client()
+        if not client:
+            raise Exception("Client not initialized")
 
         # When project_id is not provided, attempt to fetch the task.
         # If the task cannot be found or prefetch fails, treat as idempotent delete.
@@ -380,10 +382,9 @@ class TickTickAdapter:
                 prefetch_task = client.get_by_id(task_id)
                 if not prefetch_task:
                     logger.info(
-                        "Task %s not found before delete; treating as already deleted",
+                        "Task %s not found before delete; proceeding with delete anyway.",
                         task_id,
                     )
-                    return True
             except Exception as e:  # noqa: BLE001
                 # Do not abort on prefetch failure; proceed with best-effort delete path
                 logger.warning(

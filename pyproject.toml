@@ -93,6 +93,7 @@ ignore = ["ANN401", "S101", "PLR0913", "PLR0912", "PLR0915"]
 "src/cli.py" = ["T20"]
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
