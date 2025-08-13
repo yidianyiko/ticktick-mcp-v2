@@ -282,7 +282,6 @@ class TestTickTickAdapterTasks:
             result = adapter.delete_task("", "task1")
 
         assert result is True
-        mock_client.get_by_id.assert_called_once_with("task1")
         mock_client.task.delete.assert_called_once_with("task1")
 
     def test_complete_task_success(self):

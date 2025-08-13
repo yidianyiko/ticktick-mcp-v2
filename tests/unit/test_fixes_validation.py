@@ -99,8 +99,6 @@ class TestTaskFixesValidation:
             # 验证返回值
             assert result is True
 
-            # 验证应该调用 get_by_id 来获取任务信息
-            mock_client.get_by_id.assert_called_once_with("test_task_id")
 
             # 验证 delete 方法被调用
             mock_client.task.delete.assert_called_once_with("test_task_id")
@@ -124,8 +122,6 @@ class TestTaskFixesValidation:
             # 验证返回值
             assert result is True
 
-            # 验证应该调用 get_by_id 来获取任务信息
-            mock_client.get_by_id.assert_called_once_with("test_task_id")
 
             # 验证 delete 方法被调用
             mock_client.task.delete.assert_called_once_with("test_task_id")
@@ -156,7 +152,6 @@ class TestTaskFixesValidation:
             result = adapter.delete_task("", "test_task_id")
 
             assert result is True
-            mock_client.get_by_id.assert_called_once_with("test_task_id")
             mock_client.task.delete.assert_called_once_with("test_task_id")
 
 

@@ -523,7 +523,8 @@ class TestErrorHandling:
             )
 
     @pytest.mark.asyncio
-    async def test_invalid_parameter_handling(self):
+    @patch("server.ensure_authenticated", return_value=True)
+    async def test_invalid_parameter_handling(self, mock_auth):
         """Test handling of invalid parameters"""
         # Test invalid priority in create_task
         result = await create_task("Test", priority="invalid")
