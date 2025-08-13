@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from auth import TickTickAuth
-from utils.helpers import search_tasks as search_tasks_helper
 from utils.helpers import normalize_color
+from utils.helpers import search_tasks as search_tasks_helper
 from utils.timezone_utils import COMPLETED_STATUS, is_task_due_today, is_task_overdue
 
 # Add ticktick.py submodule to path
@@ -64,7 +64,8 @@ class TickTickAdapter:
                 return ""
             # ticktick-py library stores user timezone in client.time_zone
             return getattr(client, "time_zone", "")
-        except Exception:
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to get user timezone: %s", e)
             return ""
 
     def get_user_timezone(self) -> str:
@@ -367,7 +368,7 @@ class TickTickAdapter:
 
         Behavior expected by tests:
         - If project_id is provided (truthy), delete directly by task_id string.
-        - If project_id is empty/None, first try to fetch the task to infer project, then delete by id.
+        - If project_id is empty/None, fetch task to infer project, then delete.
         - Raise exceptions on failures instead of swallowing.
         """
         client = self._ensure_client()
@@ -383,11 +384,12 @@ class TickTickAdapter:
                         task_id,
                     )
                     return True
-            except Exception:
+            except Exception as e:  # noqa: BLE001
                 # Do not abort on prefetch failure; proceed with best-effort delete path
                 logger.warning(
-                    "Prefetch failed for task %s; proceeding with delete attempt",
+                    "Prefetch for task %s failed with error: %s. Proceeding with delete.",
                     task_id,
+                    e,
                 )
 
         # Primary path: delete by id
@@ -398,47 +400,46 @@ class TickTickAdapter:
                 "Delete by id failed for task %s, attempting fallback", task_id,
             )
             # Fallback path: try syncing and deleting via full task object if available
-            try:
-                if hasattr(client, "sync"):
-                    try:
-                        client.sync()
-                    except Exception:
-                        logger.warning(
-                            "Client sync failed before fallback delete for %s", task_id,
-                        )
-
-                task_obj = None
+            if hasattr(client, "sync"):
                 try:
-                    task_obj = client.get_by_id(task_id)
-                except Exception:
+                    client.sync()
+                except Exception as e:  # noqa: BLE001
                     logger.warning(
-                        "Failed to fetch task %s during fallback delete; treating as already deleted",
+                        "Client sync failed before fallback delete for %s: %s",
                         task_id,
+                        e,
                     )
-                    return True
 
-                if task_obj is None:
-                    # If the task is not found locally after sync, treat as idempotent delete
-                    logger.info(
-                        "Task %s not found during fallback; treating as already deleted",
-                        task_id,
-                    )
-                    return True
+            task_obj = None
+            try:
+                task_obj = client.get_by_id(task_id)
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    "Failed to fetch task %s during fallback delete: %s. Treating as deleted.",
+                    task_id,
+                    e,
+                )
+                return True
 
-                # Attempt delete by object (covers completed tasks in some client impls)
-                try:
-                    client.task.delete(task_obj)
-                except Exception:
-                    logger.exception(
-                        "Fallback delete by object failed for task %s", task_id,
-                    )
-                    raise
-                else:
-                    logger.info("Deleted task via fallback path: %s", task_id)
-                    return True
+            if task_obj is None:
+                # If the task is not found locally after sync, treat as idempotent delete
+                logger.info(
+                    "Task %s not found during fallback; treating as already deleted",
+                    task_id,
+                )
+                return True
+
+            # Attempt delete by object (covers completed tasks in some client impls)
+            try:
+                client.task.delete(task_obj)
             except Exception:
-                # Surface the failure after logging
+                logger.exception(
+                    "Fallback delete by object failed for task %s", task_id,
+                )
                 raise
+            else:
+                logger.info("Deleted task via fallback path: %s", task_id)
+                return True
         else:
             logger.info(
                 "Deleted task: %s%s",

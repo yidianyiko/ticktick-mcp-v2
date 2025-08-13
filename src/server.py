@@ -86,19 +86,22 @@ COLOR_NAME_TO_HEX: dict[str, str] = {
     "mint": "#96CEB4",
 }
 
+HEX_COLOR_LENGTH = 7
+
 
 def _is_hex_color(value: str) -> bool:
     """Return True if value is a #RRGGBB hex color string."""
     if not isinstance(value, str):
         return False
-    if len(value) != 7 or not value.startswith("#"):
+    if len(value) != HEX_COLOR_LENGTH or not value.startswith("#"):
         return False
     hex_part = value[1:]
     try:
         int(hex_part, 16)
-        return True
     except ValueError:
         return False
+    else:
+        return True
 
 
 def _normalize_color(color: str | None) -> str | None:

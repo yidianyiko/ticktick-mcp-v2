@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 # Common color names mapped to TickTick-compatible hex values.
+HEX_COLOR_LENGTH = 7
 COLOR_NAME_TO_HEX: dict[str, str] = {
     "red": "#FF6161",
     "pink": "#BE3B83",
@@ -32,13 +33,14 @@ def is_hex_color(value: str) -> bool:
     """Return True if value is a #RRGGBB hex color string."""
     if not isinstance(value, str):
         return False
-    if len(value) != 7 or not value.startswith("#"):
+    if len(value) != HEX_COLOR_LENGTH or not value.startswith("#"):
         return False
     try:
         int(value[1:], 16)
-        return True
-    except Exception:
+    except ValueError:
         return False
+    else:
+        return True
 
 
 def normalize_color(color: str | None) -> str | None:
