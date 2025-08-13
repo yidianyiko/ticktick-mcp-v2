@@ -316,7 +316,7 @@ async def get_project(project_id: str) -> str:
 
 @server.tool()
 async def create_project(
-    name: str, color: str | None = None, view_mode: str = "list",
+    name: str, color: str | None = None,
 ) -> str:
     """Create a new project.
 
@@ -326,14 +326,13 @@ async def create_project(
             Accepts either a hex color (e.g., "#FF6161") or one of:
             red, pink, teal, green, yellow, purple, blue, mint.
             Unknown values are ignored and TickTick's default color is used.
-        view_mode: View mode (not enforced by TickTick API; added to response for convenience)
     """
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
 
     try:
         normalized_color = _normalize_color(color)
-        project = create_project_impl(name, normalized_color, view_mode)
+        project = create_project_impl(name, normalized_color)
         return format_result(project)
     except Exception as e:
         logger.exception("Error in create_project")
