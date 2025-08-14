@@ -4,7 +4,7 @@ Task management MCP tools based on ticktick.py library
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from adapters.client import get_client
@@ -54,30 +54,29 @@ def create_task(
 
         # If we have time parameters, use the date-aware method
         if start_date is not None or due_date is not None:
-            from datetime import datetime
-            
+
             # Parse start_date and due_date to datetime objects
             start_datetime = None
             due_datetime = None
-            
+
             if start_date is not None:
                 try:
-                    start_datetime = datetime.fromisoformat(start_date.replace(' ', 'T'))
+                    start_datetime = datetime.fromisoformat(start_date.replace(" ", "T"))
                 except ValueError:
-                    logger.warning("Invalid start_date format: %s, expected 'YYYY-MM-DD HH:MM:SS'", start_date)
-                    
+                    logger.warning("Invalid start_date format: %s", start_date)
+
             if due_date is not None:
                 try:
-                    due_datetime = datetime.fromisoformat(due_date.replace(' ', 'T'))
+                    due_datetime = datetime.fromisoformat(due_date.replace(" ", "T"))
                 except ValueError:
-                    logger.warning("Invalid due_date format: %s, expected 'YYYY-MM-DD HH:MM:SS'", due_date)
-            
+                    logger.warning("Invalid due_date format: %s", due_date)
+
             # Get user's timezone from TickTick client
             user_timezone = adapter.get_user_timezone()
             if not user_timezone:
                 user_timezone = "Asia/Shanghai"  # Fallback timezone
                 logger.warning("Could not get user timezone, using fallback: %s", user_timezone)
-            
+
             # Use the date-aware method
             task = adapter.create_task_with_dates(
                 title=title,
@@ -86,7 +85,7 @@ def create_task(
                 start_date=start_datetime,
                 due_date=due_datetime,
                 priority=priority,
-                timezone=user_timezone
+                timezone=user_timezone,
             )
         else:
             # Use simple method for tasks without dates
@@ -131,30 +130,29 @@ def update_task(
 
         # If we have time parameters, use the date-aware method
         if start_date is not None or due_date is not None:
-            from datetime import datetime
-            
+
             # Parse start_date and due_date to datetime objects
             start_datetime = None
             due_datetime = None
-            
+
             if start_date is not None:
                 try:
-                    start_datetime = datetime.fromisoformat(start_date.replace(' ', 'T'))
+                    start_datetime = datetime.fromisoformat(start_date.replace(" ", "T"))
                 except ValueError:
-                    logger.warning("Invalid start_date format: %s, expected 'YYYY-MM-DD HH:MM:SS'", start_date)
-                    
+                    logger.warning("Invalid start_date format: %s", start_date)
+
             if due_date is not None:
                 try:
-                    due_datetime = datetime.fromisoformat(due_date.replace(' ', 'T'))
+                    due_datetime = datetime.fromisoformat(due_date.replace(" ", "T"))
                 except ValueError:
-                    logger.warning("Invalid due_date format: %s, expected 'YYYY-MM-DD HH:MM:SS'", due_date)
-            
+                    logger.warning("Invalid due_date format: %s", due_date)
+
             # Get user's timezone from TickTick client
             user_timezone = adapter.get_user_timezone()
             if not user_timezone:
                 user_timezone = "Asia/Shanghai"  # Fallback timezone
                 logger.warning("Could not get user timezone, using fallback: %s", user_timezone)
-            
+
             # Use the date-aware method
             task = adapter.update_task_with_dates(
                 task_id=task_id,
@@ -164,7 +162,7 @@ def update_task(
                 start_date=start_datetime,
                 due_date=due_datetime,
                 priority=priority,
-                timezone=user_timezone
+                timezone=user_timezone,
             )
         else:
             # Use simple method for updates without dates

@@ -44,13 +44,11 @@ def get_project(project_id: str) -> dict[str, Any]:
         return project
 
 
-def create_project(
-    name: str, color: str | None = None, view_mode: str = "list",
-) -> dict[str, Any]:
+def create_project(name: str, color: str | None = None) -> dict[str, Any]:
     """Create new project using client's project manager to match tests"""
     try:
         adapter = get_client()
-        client = adapter._ensure_client()
+        client = adapter._ensure_client()  # noqa: SLF001
 
         # If a project with the same name already exists, return it directly
         try:
@@ -58,7 +56,8 @@ def create_project(
                 (p for p in adapter.get_projects() if p.get("name") == name),
                 None,
             )
-        except Exception:
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to check for existing projects: %s", e)
             existing = None
         if existing:
             logger.info("Project already exists with name '%s'; returning existing.", name)
@@ -70,7 +69,7 @@ def create_project(
         else:
             try:
                 created_project = client.project.create(name, normalized_color)
-            except Exception as first_err:  # Retry without color if provider rejects it
+            except Exception as first_err:  # noqa: BLE001
                 logger.warning(
                     "Project create with color failed; retrying without color. Reason: %s",
                     first_err,
@@ -89,7 +88,7 @@ def delete_project(project_id: str) -> bool:
     """Delete project using client's project manager to match tests"""
     try:
         adapter = get_client()
-        client = adapter._ensure_client()
+        client = adapter._ensure_client()  # noqa: SLF001
         result = client.project.delete(project_id)
     except Exception as err:
         logger.exception("Error deleting project %s", project_id)

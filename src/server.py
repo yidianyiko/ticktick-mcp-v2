@@ -86,19 +86,22 @@ COLOR_NAME_TO_HEX: dict[str, str] = {
     "mint": "#96CEB4",
 }
 
+HEX_COLOR_LENGTH = 7
+
 
 def _is_hex_color(value: str) -> bool:
     """Return True if value is a #RRGGBB hex color string."""
     if not isinstance(value, str):
         return False
-    if len(value) != 7 or not value.startswith("#"):
+    if len(value) != HEX_COLOR_LENGTH or not value.startswith("#"):
         return False
     hex_part = value[1:]
     try:
         int(hex_part, 16)
-        return True
     except ValueError:
         return False
+    else:
+        return True
 
 
 def _normalize_color(color: str | None) -> str | None:
@@ -313,7 +316,7 @@ async def get_project(project_id: str) -> str:
 
 @server.tool()
 async def create_project(
-    name: str, color: str | None = None, view_mode: str = "list",
+    name: str, color: str | None = None,
 ) -> str:
     """Create a new project.
 
@@ -323,14 +326,13 @@ async def create_project(
             Accepts either a hex color (e.g., "#FF6161") or one of:
             red, pink, teal, green, yellow, purple, blue, mint.
             Unknown values are ignored and TickTick's default color is used.
-        view_mode: View mode (not enforced by TickTick API; added to response for convenience)
     """
     if not ensure_authenticated():
         return "Not authenticated. Please use auth_login tool to login first."
 
     try:
         normalized_color = _normalize_color(color)
-        project = create_project_impl(name, normalized_color, view_mode)
+        project = create_project_impl(name, normalized_color)
         return format_result(project)
     except Exception as e:
         logger.exception("Error in create_project")
