@@ -275,9 +275,16 @@ class TickTickAdapter:
     ) -> dict[str, Any]:
         """Update existing task"""
         client = self._ensure_client()
-        # First get task details; only the client call is protected
+
+        # Sync state first to ensure we have fresh data
         try:
-            task = client.get_by_id(task_id)
+            client.sync()
+        except Exception as e:
+            logger.warning("Sync failed before update_task: %s", e)
+
+        # First get task details; search specifically in tasks
+        try:
+            task = client.get_by_id(task_id, search='tasks')
         except Exception:
             logger.exception("Failed to fetch task %s", task_id)
             raise
@@ -285,6 +292,10 @@ class TickTickAdapter:
         if not task:
             msg = f"Task {task_id} not found"
             raise ValueError(msg)
+
+        # Ensure projectId is set (inbox tasks may have 'inbox' instead of actual ID)
+        if task.get('projectId') == 'inbox' or not task.get('projectId'):
+            task['projectId'] = client.inbox_id
 
         # Update task data
         task.update(kwargs)
@@ -452,9 +463,16 @@ class TickTickAdapter:
     def complete_task(self, task_id: str) -> bool:
         """Mark task as completed"""
         client = self._ensure_client()
-        # Fetch under protection
+
+        # Sync state first to ensure we have fresh data
         try:
-            task = client.get_by_id(task_id)
+            client.sync()
+        except Exception as e:
+            logger.warning("Sync failed before complete_task: %s", e)
+
+        # Fetch under protection - search specifically in tasks
+        try:
+            task = client.get_by_id(task_id, search='tasks')
         except Exception:
             logger.exception("Failed to fetch task %s", task_id)
             raise
@@ -462,6 +480,10 @@ class TickTickAdapter:
         if not task:
             msg = f"Task {task_id} not found"
             raise ValueError(msg)
+
+        # Ensure projectId is set (inbox tasks may have 'inbox' instead of actual ID)
+        if task.get('projectId') == 'inbox' or not task.get('projectId'):
+            task['projectId'] = client.inbox_id
 
         try:
             # Use ticktick.py library to complete task (needs full task dict)
