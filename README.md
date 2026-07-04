@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/yidianyiko-ticktick-mcp-v2-badge.png)](https://mseep.ai/app/yidianyiko-ticktick-mcp-v2)
+
 # TickTick MCP v2
 
 A Model Context Protocol (MCP) server for TickTick that enables interacting with your TickTick task management system directly through Claude and other MCP clients using v2 interfaces.
