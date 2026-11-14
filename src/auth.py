@@ -10,7 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from dotenv import set_key
+import keyring
+from keyring.backends.chainer import ChainerBackend
 
 # Add ticktick.py submodule to path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "submodule" / "ticktick-py"))
@@ -26,14 +27,21 @@ logger = logging.getLogger(__name__)
 class TickTickAuth:
     """Authentication manager based on ticktick.py library"""
 
-    def __init__(self) -> None:
-        """Initialize authentication manager"""
-        self.env_file = Path(".env")
-        self.config_dir = Path.home() / ".ticktick-mcp"
-        self.credentials_file = self.config_dir / "credentials.json"
-
-        # Ensure config directory exists
-        self.config_dir.mkdir(parents=True, exist_ok=True)
+    @staticmethod
+    def _keyring() -> Any:
+        """Use only OS credential stores; reject plaintext and third-party fallbacks."""
+        backend = keyring.get_keyring()
+        backends = backend.backends if isinstance(backend, ChainerBackend) else [backend]
+        for candidate in backends:
+            if type(candidate).__module__ in {
+                "keyring.backends.SecretService",
+                "keyring.backends.kwallet",
+                "keyring.backends.macOS",
+                "keyring.backends.Windows",
+            }:
+                return candidate
+        msg = "No secure OS keyring available. Configure a system credential store first."
+        raise RuntimeError(msg)
 
     def authenticate(self, username: str, password: str) -> bool:
         """Authenticate using username and password"""
@@ -50,28 +58,21 @@ class TickTickAuth:
 
             # Save credentials
             self._save_credentials(username, password)
-        except Exception:
-            logger.exception("Authentication failed")
+        except Exception:  # noqa: BLE001 - SDK and vault errors must fail closed
+            logger.error(  # noqa: TRY400 - exceptions may contain credentials
+                "Authentication failed; check login details and system keyring availability",
+            )
             return False
         else:
             logger.info("Successfully authenticated as %s", username)
             return True
 
     def _save_credentials(self, username: str, password: str) -> None:
-        """Save credentials to local file"""
-        credentials = {
-            "username": username,
-            "password": password,
-            "authenticated": True,
-        }
-
-        with self.credentials_file.open("w") as f:
-            json.dump(credentials, f, indent=2)
-
-        # Also save to .env file for compatibility
-        set_key(self.env_file, "TICKTICK_USERNAME", username)
-        set_key(self.env_file, "TICKTICK_PASSWORD", password)
-        set_key(self.env_file, "TICKTICK_AUTHENTICATED", "true")
+        """Save credentials exclusively in the system keyring"""
+        self._keyring().set_password(
+            "ticktick-mcp-v2", "credentials",
+            json.dumps({"username": username, "password": password, "authenticated": True}),
+        )
 
     def get_client(self) -> Any:
         """Get authenticated TickTick client"""
@@ -103,14 +104,22 @@ class TickTickAuth:
             return client
 
     def _load_credentials(self) -> dict[str, str] | None:
-        """Load saved credentials"""
+        """Load credentials exclusively from the system keyring"""
         try:
-            if self.credentials_file.exists():
-                with self.credentials_file.open() as f:
-                    return json.load(f)
-        except Exception:
-            logger.exception("Failed to load credentials")
-
+            value = self._keyring().get_password("ticktick-mcp-v2", "credentials")
+            if value:
+                credentials = json.loads(value)
+                if (
+                    isinstance(credentials, dict)
+                    and isinstance(credentials.get("username"), str)
+                    and isinstance(credentials.get("password"), str)
+                    and credentials["username"] and credentials["password"]
+                ):
+                    return credentials
+        except Exception:  # noqa: BLE001 - unavailable vault means unauthenticated
+            logger.error(  # noqa: TRY400 - do not log secret-bearing exceptions
+                "Unable to read credentials from the system keyring",
+            )
         return None
 
     def is_authenticated(self) -> bool:
@@ -124,14 +133,9 @@ class TickTickAuth:
     def logout(self) -> bool:
         """Logout and clear credentials"""
         try:
-            # Delete credentials file
-            if self.credentials_file.exists():
-                self.credentials_file.unlink()
-
-            # Clear authentication info in .env file
-            set_key(self.env_file, "TICKTICK_USERNAME", "")
-            set_key(self.env_file, "TICKTICK_PASSWORD", "")
-            set_key(self.env_file, "TICKTICK_AUTHENTICATED", "false")
+            vault = self._keyring()
+            if vault.get_password("ticktick-mcp-v2", "credentials") is not None:
+                vault.delete_password("ticktick-mcp-v2", "credentials")
         except Exception:
             logger.exception("Logout failed")
             return False

@@ -8,7 +8,6 @@ import logging
 import sys
 
 import click
-from dotenv import load_dotenv
 
 from auth import TickTickAuth
 from server import main as server_main
@@ -16,9 +15,6 @@ from server import main as server_main
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Load environment variables
-load_dotenv()
 
 
 @click.group()
@@ -45,7 +41,7 @@ def auth(username: str, password: str) -> None:
 
         # Try to authenticate
         if auth_handler.authenticate(username, password):
-            click.echo("✅ Authentication successful! Credentials saved.")
+            click.echo("✅ Authentication successful! Credentials saved in the system keyring.")
             click.echo("You can now run the server with: uv run ticktick-mcp run")
         else:
             click.echo(

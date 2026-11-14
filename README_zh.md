@@ -17,23 +17,23 @@
 - 🔄 更新现有任务详情（标题、内容、日期、优先级）
 - ✅ 将任务标记为完成
 - 🗑️ 删除任务和项目
-- 🔐 用户名/密码身份验证，本地凭证存储
+- 🔐 用户名/密码身份验证，系统钥匙串存储
 
 ## 快速开始
 
 
  `mcp.json` 文件：
 
+先在终端运行 `uvx --from ticktick-mcp-v2 ticktick-mcp auth`，通过隐藏输入提示登录。凭据仅保存在系统钥匙串中；Linux/WSL 需要可用且已解锁的 Secret Service 或 KWallet，Windows/macOS 使用系统凭据库。不可用时会报错，不会回退到明文文件。
+
+升级后请重新登录，并删除旧的 `~/.ticktick-mcp/credentials.json`、以前启动目录 `.env` 里的 `TICKTICK_USERNAME` / `TICKTICK_PASSWORD` / `TICKTICK_AUTHENTICATED`，以及 MCP 配置中的密码。程序不再读取旧 JSON，也不会修改任意工作目录的 `.env`；退出只清除钥匙串记录。
+
 ```json
 {
   "mcpServers": {
     "ticktick-mcp-v2": {
       "command": "uvx",
-      "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"],
-      "env": {
-        "TICKTICK_USERNAME": "your_username",
-        "TICKTICK_PASSWORD": "your_password"
-      }
+      "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"]
     }
   }
 }

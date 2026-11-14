@@ -4,12 +4,11 @@ Helper Functions Module
 Provides various general helper functions
 """
 
-import json
 import logging
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
+from auth import TickTickAuth
 from utils.timezone_utils import is_task_due_today, is_task_overdue
 
 logger = logging.getLogger(__name__)
@@ -66,51 +65,20 @@ def normalize_color(color: str | None) -> str | None:
 
 
 def load_credentials() -> dict[str, str] | None:
-    """
-    Load saved credentials
-
-    Returns:
-        Dict containing username and password, or None if not exists
-    """
-    config_file = Path.home() / ".ticktick-mcp" / "credentials.json"
-
-    if not config_file.exists():
-        return None
-
-    try:
-        with config_file.open() as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        logger.exception("Error loading credentials")
-        return None
+    """Load credentials from the system keyring."""
+    return TickTickAuth()._load_credentials()  # noqa: SLF001 - compatibility wrapper
 
 
 def save_credentials(username: str, password: str) -> bool:
-    """
-    Save credentials to local file
-
-    Args:
-        username: Username
-        password: Password
-
-    Returns:
-        bool: Whether save was successful
-    """
+    """Save credentials in the system keyring, without a file fallback."""
     try:
-        config_dir = Path.home() / ".ticktick-mcp"
-        config_dir.mkdir(exist_ok=True)
-        config_file = config_dir / "credentials.json"
-
-        credentials = {"username": username, "password": password}
-
-        with config_file.open("w") as f:
-            json.dump(credentials, f, indent=2)
-    except Exception:
-        logger.exception("Error saving credentials")
+        TickTickAuth()._save_credentials(username, password)  # noqa: SLF001
+    except Exception:  # noqa: BLE001 - preserve compatibility boolean result
+        logger.error(  # noqa: TRY400 - do not log secret-bearing exceptions
+            "Unable to save credentials in the system keyring",
+        )
         return False
-    else:
-        logger.info("Credentials saved successfully")
-        return True
+    return True
 
 
 def format_task_info(task: dict[str, Any]) -> str:

@@ -17,6 +17,7 @@ python-dateutil>=2.8.2
 
 # Environment variables
 python-dotenv>=1.0.0
+keyring>=25.0.0
 
 # HTTP client for API calls
 httpx>=0.24.0

@@ -5,11 +5,9 @@ TickTick MCP Server - Simplified Implementation
 
 import asyncio
 import logging
-import os
 import sys
 from typing import Any
 
-from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 from auth import TickTickAuth
@@ -58,9 +56,6 @@ from tools.tasks import (
 from tools.tasks import (
     update_task as update_task_impl,
 )
-
-# Load environment variables
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
@@ -129,24 +124,7 @@ def _normalize_color(color: str | None) -> str | None:
 # Global client check (similar to reference project)
 def ensure_authenticated() -> bool:
     """Ensure client is authenticated, similar to reference project's initialize_client."""
-    auth = TickTickAuth()
-    if not auth.is_authenticated():
-        # Try to authenticate using environment variables if available
-        username = os.getenv("TICKTICK_USERNAME")
-        password = os.getenv("TICKTICK_PASSWORD")
-
-        if username and password:
-            logger.info(
-                "Attempting automatic authentication using environment variables",
-            )
-            if auth.authenticate(username, password):
-                logger.info("Automatic authentication successful")
-                return True
-            logger.warning("Automatic authentication failed")
-            return False
-        logger.warning("No authentication credentials found")
-        return False
-    return True
+    return TickTickAuth().is_authenticated()
 
 
 # Helper function to format results

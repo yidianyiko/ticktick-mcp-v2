@@ -15,22 +15,22 @@ A Model Context Protocol (MCP) server for TickTick that enables interacting with
 - 🔄 Update existing task details (title, content, dates, priority)
 - ✅ Mark tasks as complete
 - 🗑️ Delete tasks and projects
-- 🔐 Username/password authentication with local credential storage
+- 🔐 Username/password authentication with system keyring storage
 
 ## Quick Start
 
 Create a `mcp.json` file:
+
+First run `uvx --from ticktick-mcp-v2 ticktick-mcp auth` in a terminal and use the hidden password prompt. Credentials are stored only in the OS keyring. Linux/WSL requires an available, unlocked Secret Service or KWallet; Windows/macOS uses the native credential store. An unavailable keyring fails closed without a plaintext fallback.
+
+After upgrading, log in again and remove legacy `~/.ticktick-mcp/credentials.json`, `TICKTICK_USERNAME` / `TICKTICK_PASSWORD` / `TICKTICK_AUTHENTICATED` entries from `.env` files in previous launch directories, and passwords in MCP configuration files. Legacy JSON is no longer read; the app never edits working-directory `.env` files. Logout clears only the keyring entry.
 
 ```json
 {
   "mcpServers": {
     "ticktick-mcp-v2": {
       "command": "uvx",
-      "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"],
-      "env": {
-        "TICKTICK_USERNAME": "your_username",
-        "TICKTICK_PASSWORD": "your_password"
-      }
+      "args": ["--from", "ticktick-mcp-v2", "ticktick-mcp", "run"]
     }
   }
 }
